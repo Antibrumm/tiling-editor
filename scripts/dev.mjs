@@ -11,9 +11,8 @@ const rebuild = () => {
     pending = pending.then(build).catch(error => console.error(error));
   }, 80);
 };
-for (const file of ['index.html', 'src/editor.js', 'src/styles.css']) {
-  fs.watch(path.join(root, file), rebuild);
-}
+fs.watch(path.join(root, 'index.html'), rebuild);
+fs.watch(path.join(root, 'src'), { recursive: true }, rebuild);
 const port = Number(process.env.PORT || 5173);
 http.createServer((request, response) => {
   const pathname = new URL(request.url, 'http://localhost').pathname;

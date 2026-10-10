@@ -1,9 +1,9 @@
 const fs=require('fs'),assert=require('assert'),esbuild=require('esbuild');
 const {JSDOM,VirtualConsole}=require('jsdom');
-const source=fs.readFileSync('src/editor.js','utf8').replace("import './styles.css';",'').replace('new THREE.WebGLRenderer({antialias:true,alpha:false})','new window.TestRenderer()').replace('    init();', '    init();');
+const source=fs.readFileSync('src/editor.ts','utf8').replace("import './styles.css';",'').replace('}, paintSurfacePattern)', '}, paintSurfacePattern, () => new window.TestRenderer())').replace('    init();', '    init();');
 const instrumented=source.replace('      publishPersistentPlan();\n      ViewController.updateView();','      window.editorTest={threePreview,planService,selection,effectivePlan,yamlEditingSignal,YamlCodec,SvgCodec};\n      publishPersistentPlan();\n      ViewController.updateView();');
-const bundle=esbuild.buildSync({stdin:{contents:instrumented,resolveDir:process.cwd()+'/src',sourcefile:'test-editor.mjs',loader:'js'},bundle:true,format:'iife',write:false,target:'es2020'}).outputFiles[0].text;
-const html=fs.readFileSync('index.html','utf8').replace(/<script type="module" src="\.\/src\/editor.js"><\/script>/,()=>'<script>'+bundle.replace(/<\/script/gi,'<\\/script')+'</script>');
+const bundle=esbuild.buildSync({stdin:{contents:instrumented,resolveDir:process.cwd()+'/src',sourcefile:'test-editor.mjs',loader:'ts'},bundle:true,format:'iife',write:false,target:'es2020'}).outputFiles[0].text;
+const html=fs.readFileSync('index.html','utf8').replace(/<script type="module" src="\.\/src\/editor.ts"><\/script>/,()=>'<script>'+bundle.replace(/<\/script/gi,'<\\/script')+'</script>');
 const errors=[],vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(e.message));
 const dom=new JSDOM(html,{runScripts:'dangerously',pretendToBeVisual:true,url:'https://editor.test/',virtualConsole:vc,beforeParse(window){
   window.ResizeObserver=class{observe(){}};window.Path2D=class{moveTo(){}lineTo(){}closePath(){}rect(){}};
@@ -18,6 +18,13 @@ const wait=()=>new Promise(r=>setTimeout(r,160));
 (async()=>{
   await wait();assert.deepStrictEqual(errors,[],'Editor starts without DOM errors');
   const window=dom.window,document=window.document;
+  document.getElementById('edit-plan-title').click();
+  const titleInput=document.getElementById('plan-title-input');
+  assert(titleInput,'The optional title editor can be created');
+  titleInput.value='TypeScript plan';
+  titleInput.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
+  assert.equal(document.getElementById('plan-title').textContent,'TypeScript plan');
+  assert.equal(document.getElementById('plan-title-input'),null);
   document.getElementById('load-template').click();await wait();
   assert.equal(document.querySelectorAll('.wall-section').length,7);
   const toggle=document.getElementById('three-toggle');toggle.checked=true;toggle.dispatchEvent(new window.Event('change'));await wait();

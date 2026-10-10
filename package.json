@@ -11,15 +11,19 @@
     "dev": "node scripts/dev.mjs",
     "build": "node scripts/build.mjs",
     "test": "node tests/pattern.test.cjs && node tests/model.test.cjs && node tests/ui.test.cjs",
-    "check": "npm test && npm run build"
+    "check": "npm run typecheck && npm test && npm run build",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "preact": "10.29.8",
     "@preact/signals": "2.11.2",
+    "preact": "10.29.8",
     "three": "0.180.0"
   },
   "devDependencies": {
+    "@types/node": "24.19.2",
+    "@types/three": "0.180.0",
     "esbuild": "0.28.2",
-    "jsdom": "26.1.0"
+    "jsdom": "26.1.0",
+    "typescript": "6.0.3"
   }
 }

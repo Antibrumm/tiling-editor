@@ -4,12 +4,13 @@
 
 - Use Node.js 20 or newer and npm. Install dependencies with `npm ci`.
 - Run `npm run dev` for the local preview at http://localhost:5173. Source changes rebuild it; refresh the browser to see them.
-- Run `npm test` for regression tests and `npm run build` for the standalone HTML. `npm run check` runs both.
+- Run `npm run typecheck` for strict TypeScript checks, `npm test` for regression tests, and `npm run build` for the standalone HTML. `npm run check` runs all three.
 - Read `README.md` and inspect the relevant source before making changes.
 
 ## Source and architecture
 
-- Edit `src/editor.js`, `src/styles.css`, and `index.html`. `dist/index.html` is generated; regenerate it rather than editing it. Earlier HTML migration and Python patch scripts are not part of this project.
+- Edit `src/editor.ts`, the TypeScript modules under `src/model/`, `src/codecs/`, and `src/rendering/`, `src/styles.css`, and `index.html`. `dist/index.html` is generated; regenerate it rather than editing it. Earlier HTML migration and Python patch scripts are not part of this project.
+- Keep strict TypeScript checking enabled. Use explicit model and component types, typed DOM access, and dependency injection at module boundaries; avoid `any` and disabled-check directives. esbuild bundles TypeScript but does not typecheck it.
 - The application uses Preact, `@preact/signals`, Canvas 2D, and Three.js. Keep the current stack unless the task calls for changing it.
 - `PlanService` owns persistent plain plan data and its mutations. Signals publish snapshots and represent interaction/selection state; Preact renders the controls.
 - Keep persistent edits flowing through `PlanService`. Preserve semantic change events used for descriptions and reset behavior.
@@ -50,7 +51,7 @@
 - Make focused changes and carry the requested behavior through controls, model, rendering, and serialization as applicable.
 - Run `npm run check` after application or build changes. Add meaningful regression coverage when changing behavior; avoid tests that only repeat implementation details.
 - For documentation-only changes, review the diff and verify referenced paths and commands; application tests are unnecessary unless code or runtime behavior also changes.
-- Tests live in `tests/pattern.test.cjs`, `tests/model.test.cjs`, and `tests/ui.test.cjs`. Model tests extract classes from the application source; UI tests instrument and bundle that same source. Update their extraction/instrumentation when refactoring.
+- Tests live in `tests/pattern.test.cjs`, `tests/model.test.cjs`, and `tests/ui.test.cjs`. Model tests load actual TypeScript modules using `tests/load-module.cjs`; UI tests instrument and bundle `src/editor.ts` with its imports. Update UI instrumentation when refactoring.
 - UI tests use real Three.js geometry and controls but mock WebGL rendering. Passing tests does not verify GPU output. Visually inspect rendering changes in a real browser when available, and state when that check could not be performed.
 - Keep dependencies pinned and update the lockfile when dependencies change. Keep `node_modules` and generated `dist` output out of Git.
 - Continue routine, reversible work autonomously. Ask concise questions only when missing information materially changes the task. Report what changed, what was verified, and any remaining limitation.

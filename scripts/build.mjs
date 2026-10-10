@@ -8,7 +8,7 @@ export const root = fileURLToPath(new URL('../', import.meta.url));
 export async function build() {
   const result = await bundle({
     absWorkingDir: root,
-    entryPoints: ['src/editor.js'],
+    entryPoints: ['src/editor.ts'],
     outdir: 'dist',
     bundle: true,
     format: 'iife',
@@ -22,7 +22,7 @@ export async function build() {
   const template = await fs.readFile(path.join(root, 'index.html'), 'utf8');
   const html = template
     .replace('<link rel="stylesheet" href="./src/styles.css">', () => `<style>${css}</style>`)
-    .replace('<script type="module" src="./src/editor.js"></script>', () => `<script>${js.replace(/<\/script/gi, '<\\/script')}</script>`);
+    .replace('<script type="module" src="./src/editor.ts"></script>', () => `<script>${js.replace(/<\/script/gi, '<\\/script')}</script>`);
   await fs.mkdir(path.join(root, 'dist'), { recursive: true });
   await fs.writeFile(path.join(root, 'dist/index.html'), html);
   console.log(`Built dist/index.html (${Buffer.byteLength(html)} bytes)`);
