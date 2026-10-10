@@ -68,6 +68,8 @@ Edit these source files directly. The earlier Python migration/patch scripts are
 
 ## Architecture and testing
 
+See [docs/architecture.md](docs/architecture.md) for module responsibilities, state ownership, and Mermaid diagrams of data flow, interactions, document loading, and rendering.
+
 `PlanService` owns typed plain plan data and persistent operations. An injected publication callback keeps it independent of editor globals. Preact renders the sidebar, Signals publish state snapshots, and semantic change events support the history descriptions and reset behavior. Canvas handles the 2D view. `ThreePreview` owns the Three.js scene and cached geometry; the floor is on XY and Z is height. Coordinates in plan files use millimeters; Three.js coordinates use meters.
 
 Model tests load the actual TypeScript modules through an in-memory esbuild bundle. UI tests instrument the TypeScript entry point, bundle it with those modules, and run it in jsdom. They use real Three.js geometry, materials, and orbit controls with a mocked WebGL renderer. The build test serves production assets with Vite preview and checks startup and template loading in jsdom. Run it separately with `npm run test:build` after building. The tests verify behavior and geometry but do not validate GPU output; use a real browser to visually review the preview, texture lighting, and pointer interactions.
