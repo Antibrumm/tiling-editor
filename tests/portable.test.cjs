@@ -71,12 +71,11 @@ const { JSDOM, ResourceLoader, VirtualConsole } = require('jsdom');
     document.getElementById('load-template').click();
     await new Promise((resolve) => setTimeout(resolve, 160));
     assert.equal(document.querySelectorAll('.wall-section').length, 7);
-    for (const [button, content] of [
-      ['open-help', 'help-dialog-content'],
-      ['open-dev-help', 'dev-help-dialog-content'],
-    ]) {
-      document.getElementById(button).click();
-      assert(document.getElementById(content).querySelector('h2'));
+    for (const id of ['user', 'developer']) {
+      document.getElementById('open-help').click();
+      document.querySelector(`[data-document="${id}"]`).click();
+      assert(document.getElementById('help-dialog-content').querySelector('h2'));
+      document.getElementById('close-help').click();
     }
     const source = document.getElementById('source');
     source.value = source.value.replace('Tiling Bathroom', 'Portable plan');

@@ -117,26 +117,27 @@ const wait = () => new Promise((r) => setTimeout(r, 160));
   assert.deepStrictEqual(errors, [], 'Editor starts without DOM errors');
   const window = dom.window,
     document = window.document;
-  for (const [buttonId, dialogId, contentId, closeId, heading] of [
-    ['open-help', 'help-dialog', 'help-dialog-content', 'close-help', 'Getting started'],
-    [
-      'open-dev-help',
-      'dev-help-dialog',
-      'dev-help-dialog-content',
-      'close-dev-help',
-      'Architecture',
-    ],
+  const dialog = document.getElementById('help-dialog');
+  const content = document.getElementById('help-dialog-content');
+  assert.equal(content.children.length, 0, 'Documentation is rendered on demand');
+  assert.equal(document.querySelectorAll('.help-button').length, 1);
+  for (const [id, heading] of [
+    ['user', 'Getting started'],
+    ['developer', 'Architecture'],
   ]) {
-    const dialog = document.getElementById(dialogId),
-      content = document.getElementById(contentId);
-    assert.equal(content.children.length, 0, 'Documentation is rendered on demand');
-    document.getElementById(buttonId).click();
+    document.getElementById('open-help').click();
     assert(dialog.open);
+    assert.equal(content.querySelectorAll('[data-document]').length, 3);
+    assert(!content.querySelector('h2'), 'Opening documentation shows the list');
+    content.querySelector(`[data-document="${id}"]`).click();
     assert.equal(content.querySelector('h2').textContent, heading);
     assert(content.querySelector('strong, code'), 'Markdown inline formatting is rendered');
-    document.getElementById(closeId).click();
+    document.getElementById('documentation-back').click();
+    assert.equal(content.querySelectorAll('[data-document]').length, 3);
+    assert.equal(document.activeElement, content.querySelector('button'));
+    document.getElementById('close-help').click();
     assert(!dialog.open);
-    document.getElementById(buttonId).click();
+    document.getElementById('open-help').click();
     dialog.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     assert(!dialog.open, 'Clicking the dialog backdrop closes it');
   }
@@ -172,7 +173,8 @@ const wait = () => new Promise((r) => setTimeout(r, 160));
   const roomDistance = preview.camera.position.distanceTo(preview.controls.target);
   const markerToggle = document.getElementById('three-light-toggle');
   const firstId = test.planService.data.lights3d[0].id,
-    firstLight = test.threePreview.lights.get(firstId);
+    firstLight = test.threePreview.lights.get(firstId),
+    initialIntensity = test.planService.data.lights3d[0].intensity;
   assert.equal(firstLight.marker.visible, false);
   markerToggle.checked = true;
   markerToggle.dispatchEvent(new window.Event('change'));
@@ -233,7 +235,7 @@ const wait = () => new Promise((r) => setTimeout(r, 160));
   assert.equal(secondLight.light.color.getHexString(), '8040ff');
   assert.equal(secondLight.light.intensity, 1.7);
   assert.equal(firstLight.light.color.getHexString(), 'ffffff');
-  assert.equal(firstLight.light.intensity, 2.5);
+  assert.equal(firstLight.light.intensity, initialIntensity);
   assert(document.getElementById('source').value.includes('color: "#8040ff"'));
   const snapshot = test.planService.snapshot();
   for (const codec of [test.yamlCodec, test.svgCodec])
@@ -262,7 +264,7 @@ const wait = () => new Promise((r) => setTimeout(r, 160));
   await wait();
   assert.equal(firstLight.marker.visible, false);
   assert.equal(firstLight.aimMarker.visible, false);
-  assert.equal(firstLight.light.intensity, 2.5);
+  assert.equal(firstLight.light.intensity, initialIntensity);
   test.planService.setPlacement3d('floor', 'x', 725);
   await wait();
   assert.equal(test.threePreview.entries.get('floor').group.position.x, 0.725);

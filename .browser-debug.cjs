@@ -126,6 +126,43 @@ const { pathToFileURL } = require('node:url');
     );
     assert.equal(rendered.webgl, true);
     assert(rendered.status.startsWith('Drag to orbit'));
+    await run(
+      `document.getElementById('open-help').click(); document.querySelector('[data-document="architecture"]').click()`,
+    );
+    const documentation = await run(`(async () => {
+      const content = document.getElementById('help-dialog-content');
+      const deadline = Date.now() + 8000;
+      while (content.querySelector('[aria-busy="true"]') && Date.now() < deadline)
+        await new Promise(resolve => setTimeout(resolve, 50));
+      return {
+        diagrams: content.querySelectorAll('.mermaid-diagram svg').length,
+        errors: content.querySelectorAll('.mermaid-error').length,
+        pending: content.querySelectorAll('[aria-busy="true"]').length,
+        sourceBlocks: content.querySelectorAll('code.language-mermaid').length,
+        visible: [...content.querySelectorAll('.mermaid-diagram svg')].every(svg => svg.getBoundingClientRect().width > 0),
+      };
+    })()`);
+    assert.equal(documentation.diagrams, 6);
+    assert.equal(documentation.errors, 0);
+    assert.equal(documentation.pending, 0);
+    assert.equal(documentation.sourceBlocks, 0);
+    assert(documentation.visible);
+    if (process.argv.includes('--screenshot')) {
+      await run(`document.querySelector('.mermaid-diagram').scrollIntoView({block:'center'})`);
+      const screenshot = await send('Page.captureScreenshot', { format: 'png' });
+      const screenshotPath = path.join(os.tmpdir(), 'tiling-documentation.png');
+      fs.writeFileSync(screenshotPath, Buffer.from(screenshot.data, 'base64'));
+      console.log('Documentation screenshot:', screenshotPath);
+    }
+    await run(`document.getElementById('documentation-back').click()`);
+    const entries = await run(
+      `document.querySelectorAll('#help-dialog-content [data-document]').length`,
+    );
+    assert.equal(entries, 3);
+    await run(`document.getElementById('close-help').click()`);
+    console.log(
+      'Passed: all six architecture diagrams render as visible SVGs; documentation navigation works.',
+    );
     assert.equal(events.filter((e) => e.method === 'Runtime.exceptionThrown').length, 0);
     if (portableFile) {
       const requested = events

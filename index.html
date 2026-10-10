@@ -39,9 +39,6 @@
             </label>
             <button class="template-button" id="load-template" type="button">Load template</button>
             <button class="help-button" id="open-help" type="button">Documentation</button>
-            <button class="help-button" id="open-dev-help" type="button">
-              Developer documentation
-            </button>
           </div>
         </header>
         <div class="work">
@@ -189,7 +186,8 @@
     <dialog class="help-dialog" id="help-dialog" aria-labelledby="help-dialog-title">
       <div class="help-dialog-shell">
         <header class="help-dialog-head">
-          <h2 id="help-dialog-title">Tiling plan editor — User documentation</h2>
+          <h2 id="help-dialog-title">Documentation</h2>
+          <button id="documentation-back" type="button" hidden>All documentation</button>
           <button
             class="help-dialog-close"
             id="close-help"
@@ -201,23 +199,6 @@
           </button>
         </header>
         <article class="help-dialog-content" id="help-dialog-content"></article>
-      </div>
-    </dialog>
-    <dialog class="help-dialog" id="dev-help-dialog" aria-labelledby="dev-help-dialog-title">
-      <div class="help-dialog-shell">
-        <header class="help-dialog-head">
-          <h2 id="dev-help-dialog-title">Tiling plan editor — Developer documentation</h2>
-          <button
-            class="help-dialog-close"
-            id="close-dev-help"
-            type="button"
-            aria-label="Close developer documentation"
-            title="Close"
-          >
-            ×
-          </button>
-        </header>
-        <article class="help-dialog-content" id="dev-help-dialog-content"></article>
       </div>
     </dialog>
     <script type="module" src="./src/editor.ts"></script>

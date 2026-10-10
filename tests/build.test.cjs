@@ -75,17 +75,18 @@ const { JSDOM, VirtualConsole } = require('jsdom');
       },
     });
     dom.window.eval(bundle);
-    for (const [button, dialog, content, heading] of [
-      ['open-help', 'help-dialog', 'help-dialog-content', 'Getting started'],
-      ['open-dev-help', 'dev-help-dialog', 'dev-help-dialog-content', 'Architecture'],
+    for (const [id, heading] of [
+      ['user', 'Getting started'],
+      ['developer', 'Architecture'],
     ]) {
-      dom.window.document.getElementById(button).click();
-      assert(dom.window.document.getElementById(dialog).open);
+      dom.window.document.getElementById('open-help').click();
+      assert(dom.window.document.getElementById('help-dialog').open);
+      dom.window.document.querySelector(`[data-document="${id}"]`).click();
       assert.equal(
-        dom.window.document.getElementById(content).querySelector('h2').textContent,
+        dom.window.document.getElementById('help-dialog-content').querySelector('h2').textContent,
         heading,
       );
-      dom.window.document.getElementById(dialog).close();
+      dom.window.document.getElementById('help-dialog').close();
     }
     dom.window.document.getElementById('load-template').click();
     await new Promise((resolve) => setTimeout(resolve, 160));

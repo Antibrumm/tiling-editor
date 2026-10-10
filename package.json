@@ -11,7 +11,7 @@
     "dev": "vite",
     "build": "npm run typecheck && vite build && node scripts/build-portable.mjs",
     "build:portable": "npm run typecheck && node scripts/build-portable.mjs",
-    "test": "node tests/pattern.test.cjs && node tests/model.test.cjs && node tests/ui.test.cjs && node tests/markdown.test.cjs",
+    "test": "node tests/pattern.test.cjs && node tests/model.test.cjs && node tests/ui.test.cjs && node tests/markdown.test.cjs && node tests/mermaid.test.cjs",
     "check": "npm run format:check && npm test && npm run build && npm run test:build",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
@@ -23,6 +23,7 @@
     "@preact/signals": "2.11.2",
     "dompurify": "3.4.16",
     "marked": "18.1.0",
+    "mermaid": "11.17.2",
     "preact": "10.29.8",
     "three": "0.180.0"
   },

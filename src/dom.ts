@@ -5,7 +5,7 @@ interface EditorElements {
   'upload-plan-input': HTMLInputElement;
   'load-template': HTMLButtonElement;
   'open-help': HTMLButtonElement;
-  'open-dev-help': HTMLButtonElement;
+  'documentation-back': HTMLButtonElement;
   'view-title': HTMLElement;
   'three-toggle': HTMLInputElement;
   'source-toggle': HTMLInputElement;
@@ -50,10 +50,6 @@ interface EditorElements {
   'help-dialog-title': HTMLElement;
   'help-dialog-content': HTMLElement;
   'close-help': HTMLButtonElement;
-  'dev-help-dialog': HTMLDialogElement;
-  'dev-help-dialog-title': HTMLElement;
-  'dev-help-dialog-content': HTMLElement;
-  'close-dev-help': HTMLButtonElement;
 }
 export function getElement<K extends keyof EditorElements>(id: K): EditorElements[K];
 export function getElement(id: string): HTMLElement;

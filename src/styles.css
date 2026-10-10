@@ -417,7 +417,7 @@ aside > p {
   gap: 8px;
   margin-bottom: 24px;
 }
-.actions button {
+button {
   border: 1px solid #cbdad4;
   border-radius: 9px;
   background: #fff;
@@ -426,12 +426,12 @@ aside > p {
   font-weight: 700;
   font-size: 12px;
 }
-.actions button.primary {
+button.primary {
   background: #1c674a;
   color: white;
   border-color: #1c674a;
 }
-.actions button:hover {
+button:hover {
   filter: brightness(0.94);
 }
 .add-wall,
@@ -1021,17 +1021,6 @@ aside input[type='color'] {
   font-size: clamp(20px, 3vw, 30px);
   color: #214f3d;
 }
-.help-dialog-close {
-  min-width: 44px;
-  min-height: 44px;
-  border: 1px solid #b8ccc2;
-  border-radius: 10px;
-  background: white;
-  color: #315f4d;
-  font-size: 24px;
-  line-height: 1;
-  cursor: pointer;
-}
 .help-dialog-content {
   box-sizing: border-box;
   width: min(980px, 100%);
@@ -1059,6 +1048,39 @@ aside input[type='color'] {
 }
 .help-dialog-content li + li {
   margin-top: 6px;
+}
+.help-dialog-content .documentation-list {
+  display: grid;
+  gap: 12px;
+  width: min(320px, 100%);
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+.help-dialog-content .documentation-list li + li {
+  margin-top: 0;
+}
+.documentation-list button {
+  width: 100%;
+}
+.mermaid-diagram {
+  margin: 20px 0;
+  overflow-x: auto;
+  padding: 16px;
+  border: 1px solid #d7e3dd;
+  border-radius: 10px;
+  background: white;
+}
+.mermaid-diagram svg {
+  display: block;
+  height: auto;
+  margin: 0 auto;
+}
+.mermaid-error {
+  color: #943a2a;
+}
+.help-dialog-content pre {
+  overflow-x: auto;
 }
 .help-dialog-content code {
   padding: 2px 5px;

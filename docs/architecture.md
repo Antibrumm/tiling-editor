@@ -4,7 +4,7 @@ This document describes the current TypeScript application: how it is assembled,
 
 The application runs in the browser with Preact, Signals, Canvas 2D, and Three.js. Vite provides development and the website build; esbuild produces a portable HTML edition. There is no application server or database; documents are loaded from files or the bundled template and exported through browser downloads.
 
-The diagrams use Mermaid. View this file in a Markdown viewer that supports Mermaid. The application's documentation dialogs currently render Markdown with Marked and DOMPurify; they load the user and developer guides and do not interpret Mermaid blocks.
+The diagrams use Mermaid. Open Architecture documentation from the application's Documentation list to view the rendered diagrams, or use a Markdown viewer that supports Mermaid. The documentation viewer renders Markdown with Marked and DOMPurify, then lazily loads Mermaid to replace diagram blocks with SVG. Mermaid is bundled into the portable HTML and works offline. If a diagram cannot be rendered, its source remains visible.
 
 ## 1. Structure and responsibilities
 
