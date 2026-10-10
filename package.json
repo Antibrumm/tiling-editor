@@ -1,0 +1,25 @@
+{
+  "name": "tiling-editor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "2D tiling plan editor with a Three.js room preview",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node tests/pattern.test.cjs && node tests/model.test.cjs && node tests/ui.test.cjs",
+    "check": "npm test && npm run build"
+  },
+  "dependencies": {
+    "preact": "10.29.8",
+    "@preact/signals": "2.11.2",
+    "three": "0.180.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "jsdom": "26.1.0"
+  }
+}
