@@ -21,7 +21,14 @@ export function LightControls({ context }: { context: ControlPanelDependencies }
     lights.map((light, index) =>
       h(
         Card,
-        { context, key: light.id, title: 'Directional light ' + (index + 1), defaultOpen: true },
+        {
+          context,
+          key: light.id,
+          title: 'Directional light ' + (index + 1),
+          defaultOpen: true,
+          kind: 'light',
+          onRemove: () => context.planService.removeLight(light.id),
+        },
         h(
           'div',
           { class: 'coords' },
@@ -70,17 +77,6 @@ export function LightControls({ context }: { context: ControlPanelDependencies }
               max: 50000,
               onInput: (value) => context.planService.setLightValue(light.id, key, value),
             }),
-          ),
-          h(
-            Button,
-            {
-              className: 'remove-element wide',
-              onClick: () =>
-                context.confirmation.open('Remove this directional light?', () =>
-                  context.planService.removeLight(light.id),
-                ),
-            },
-            'Remove light',
           ),
         ),
       ),

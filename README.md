@@ -15,6 +15,16 @@ Open http://localhost:5173. Vite watches source files and updates the browser wh
 
 ## Build and verify
 
+To hand over the application as one file:
+
+```sh
+npm run build:portable
+```
+
+Give the recipient **`dist/tiling-editor.html`**. They can double-click it in Explorer to open the editor in their browser, without Node.js, a server, or an internet connection. The file includes styles, application code, Three.js, the template, and help documentation. They can load the template or upload a plan; include an exported YAML plan alongside the HTML if you want to share a particular document. The 3D preview requires WebGL 2.
+
+`npm run build` produces both this portable file and the regular website build. The regular `dist/index.html` uses JavaScript modules and needs an HTTP server; use `tiling-editor.html` for opening directly from Explorer.
+
 ```sh
 npm run format:check
 npm run typecheck
@@ -39,30 +49,32 @@ Run `npm run format` to format source, tests, configuration, and documentation w
 
 ## Source layout
 
-| Path                                                           | Purpose                                                                                              |
-| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `src/editor.ts`                                                | Application lifecycle, Preact controls, Signals state, dependency wiring                             |
-| `src/model/types.ts`, `src/model/events.ts`                    | Plan, geometry, selection, import, and semantic event types                                          |
-| `src/model/plan-normalizer.ts`, `src/model/scene-placement.ts` | Input normalization and 3D placement defaults                                                        |
-| `src/model/hit-tester.ts`                                      | Plan-space selection and picking                                                                     |
-| `src/model/plan-service.ts`                                    | Persistent model operations                                                                          |
-| `src/model/geometry.ts`, `src/model/object-layers.ts`          | Geometry and element layering                                                                        |
-| `src/codecs/`                                                  | YAML/SVG serialization, transform parsing, and number formatting                                     |
-| `src/rendering/`                                               | Canvas rendering, render scheduling, pattern painting, texture rotation, and Three.js preview        |
-| `src/dom.ts`                                                   | Typed required DOM elements and Canvas context access                                                |
-| `tsconfig.json`                                                | Strict TypeScript checking without emitting files                                                    |
-| `src/styles.css`                                               | Editor styles                                                                                        |
-| `index.html`                                                   | Page structure, controls, and empty documentation dialogs                                            |
-| `docs/user.md`, `docs/developer.md`                            | User and developer documentation in Markdown                                                         |
-| `src/ui/components/`                                           | Focused Preact sidebar components and shared form controls                                           |
-| `src/ui/`                                                      | UI state, controllers, interaction, document lifecycle, and documentation rendering                  |
-| `src/assets/base-model.yaml`                                   | Starter plan imported as text through Vite                                                           |
-| `vite.config.ts`                                               | Preact integration, asset builds, development server, and local build preview                        |
-| `tests/pattern.test.cjs`                                       | Pattern rotation defaults, edits, and YAML persistence                                               |
-| `tests/model.test.cjs`                                         | Model validation, persistence, placement math, face visibility, element layering, and light behavior |
-| `tests/ui.test.cjs`                                            | Bundled startup, control interaction, reactive scene updates, camera fitting, and save round trips   |
-| `tests/build.test.cjs`                                         | Built application startup, documentation, and asset serving through Vite preview                     |
-| `tests/markdown.test.cjs`                                      | Markdown formatting and HTML sanitization                                                            |
+| Path                                                           | Purpose                                                                                                  |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `src/editor.ts`                                                | Application lifecycle, Preact controls, Signals state, dependency wiring                                 |
+| `src/model/types.ts`, `src/model/events.ts`                    | Plan, geometry, selection, import, and semantic event types                                              |
+| `src/model/plan-normalizer.ts`, `src/model/scene-placement.ts` | Input normalization and 3D placement defaults                                                            |
+| `src/model/hit-tester.ts`                                      | Plan-space selection and picking                                                                         |
+| `src/model/plan-service.ts`                                    | Persistent model operations                                                                              |
+| `src/model/geometry.ts`, `src/model/object-layers.ts`          | Geometry and element layering                                                                            |
+| `src/codecs/`                                                  | YAML/SVG serialization, transform parsing, and number formatting                                         |
+| `src/rendering/`                                               | Canvas rendering, render scheduling, pattern painting, texture rotation, and Three.js preview            |
+| `src/dom.ts`                                                   | Typed required DOM elements and Canvas context access                                                    |
+| `tsconfig.json`                                                | Strict TypeScript checking without emitting files                                                        |
+| `src/styles.css`                                               | Editor styles                                                                                            |
+| `index.html`                                                   | Page structure, controls, and empty documentation dialogs                                                |
+| `docs/user.md`, `docs/developer.md`                            | User and developer documentation in Markdown                                                             |
+| `src/ui/components/`                                           | Focused Preact sidebar components and shared form controls                                               |
+| `src/ui/`                                                      | UI state, controllers, interaction, document lifecycle, and documentation rendering                      |
+| `src/assets/base-model.yaml`                                   | Starter plan imported as text through Vite                                                               |
+| `vite.config.ts`                                               | Preact integration, asset builds, development server, and local build preview                            |
+| `scripts/build-portable.mjs`                                   | Bundles source into a self-contained HTML file for direct browser opening.                               |
+| `tests/pattern.test.cjs`                                       | Pattern rotation defaults, edits, and YAML persistence                                                   |
+| `tests/model.test.cjs`                                         | Model validation, persistence, placement math, face visibility, element layering, and light behavior     |
+| `tests/ui.test.cjs`                                            | Bundled startup, control interaction, reactive scene updates, camera fitting, and save round trips       |
+| `tests/build.test.cjs`                                         | Built application startup, documentation, and asset serving through Vite preview                         |
+| `tests/portable.test.cjs`                                      | Isolated portable-file startup, documentation, source editing, and downloads without external resources. |
+| `tests/markdown.test.cjs`                                      | Markdown formatting and HTML sanitization                                                                |
 
 Edit these source files directly. The earlier Python migration/patch scripts are no longer part of the build. Application source is TypeScript with strict checking. The model, codecs, geometry, and 3D/pattern rendering are separate modules; each class has its own TypeScript file, while the editor entry point constructs the classes and connects reactive state. Documentation buttons render the Markdown files imported through Vite using Marked and DOMPurify. Edit `docs/user.md` or `docs/developer.md` to update their content. Vite handles development and production builds. Regression test runners remain JavaScript.
 

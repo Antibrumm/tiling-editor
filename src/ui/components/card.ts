@@ -40,7 +40,7 @@ export function Card({
       { class: 'group-top' },
       reorder &&
         h(ReorderHandle, { context, type: reorder[0], index: reorder[1], wallName: reorder[2] }),
-      onRename
+      onRename || onRemove
         ? h(EditableName, { context, title, onRename, onRemove, kind })
         : h('strong', null, title),
     ),

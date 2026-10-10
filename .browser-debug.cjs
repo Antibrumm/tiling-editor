@@ -1,10 +1,20 @@
 const fs = require('node:fs'),
+  assert = require('node:assert/strict'),
   os = require('node:os'),
   path = require('node:path'),
   { spawn } = require('node:child_process');
+const { pathToFileURL } = require('node:url');
 (async () => {
-  const { preview } = await import('vite');
-  const server = await preview({ preview: { host: '127.0.0.1', port: 0 } });
+  const portableFile = process.argv[2];
+  let server;
+  let targetUrl;
+  if (portableFile) {
+    targetUrl = pathToFileURL(path.resolve(portableFile)).href;
+  } else {
+    const { preview } = await import('vite');
+    server = await preview({ preview: { host: '127.0.0.1', port: 0 } });
+    targetUrl = 'http://127.0.0.1:' + server.httpServer.address().port;
+  }
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'tiling-browser-'));
   const browser = spawn(
     'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
@@ -89,25 +99,41 @@ const fs = require('node:fs'),
     await send('Runtime.enable');
     await send('Log.enable');
     await send('Page.enable');
-    await send('Page.navigate', { url: 'http://127.0.0.1:' + server.httpServer.address().port });
+    await send('Network.enable');
+    await send('Page.navigate', { url: targetUrl });
     await new Promise((r) => setTimeout(r, 1500));
-    const run = async (expression) =>
-      console.log(
-        JSON.stringify(
-          await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true }),
-        ),
-      );
+    const run = async (expression) => {
+      const result = await send('Runtime.evaluate', {
+        expression,
+        returnByValue: true,
+        awaitPromise: true,
+      });
+      if (result.exceptionDetails) throw new Error(JSON.stringify(result.exceptionDetails));
+      console.log(JSON.stringify(result));
+      return result.result.value;
+    };
     await run(`({title:document.title,walls:document.querySelectorAll('.wall-section').length})`);
     await run(`document.getElementById('load-template').click()`);
     await new Promise((r) => setTimeout(r, 1200));
-    await run(
+    const loaded = await run(
       `({title:document.title,walls:document.querySelectorAll('.wall-section').length,status:document.getElementById('status').textContent})`,
     );
+    assert.equal(loaded.walls, 7);
     await run(`document.getElementById('three-toggle').click()`);
     await new Promise((r) => setTimeout(r, 2500));
-    await run(
-      `({status:document.getElementById('three-status').textContent,canvases:document.querySelectorAll('canvas').length})`,
+    const rendered = await run(
+      `({status:document.getElementById('three-status').textContent,canvases:document.querySelectorAll('canvas').length,webgl:!!document.querySelector('#preview-3d canvas')?.getContext('webgl2')})`,
     );
+    assert.equal(rendered.webgl, true);
+    assert(rendered.status.startsWith('Drag to orbit'));
+    assert.equal(events.filter((e) => e.method === 'Runtime.exceptionThrown').length, 0);
+    if (portableFile) {
+      const requested = events
+        .filter((event) => event.method === 'Network.requestWillBeSent')
+        .map((event) => event.params.request.url);
+      assert(requested.every((url) => url === targetUrl || url.startsWith('data:')));
+      console.log('Passed: portable file opens and renders 3D with no external resource requests.');
+    }
     console.log('ERROR COUNT', events.filter((e) => e.method === 'Runtime.exceptionThrown').length);
   } catch (error) {
     console.error(error);
@@ -115,7 +141,9 @@ const fs = require('node:fs'),
   } finally {
     socket?.close();
     browser.kill();
-    server.httpServer.closeAllConnections();
-    await new Promise((r) => server.httpServer.close(r));
+    if (server) {
+      server.httpServer.closeAllConnections();
+      await new Promise((r) => server.httpServer.close(r));
+    }
   }
 })();

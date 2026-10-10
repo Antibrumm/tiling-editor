@@ -2,7 +2,7 @@
 
 This document describes the current TypeScript application: how it is assembled, who owns its state, and how user actions reach the model and previews. See [developer.md](developer.md) for the class reference and [user.md](user.md) for usage instructions.
 
-The application runs in the browser with Preact, Signals, Canvas 2D, and Three.js. Vite provides development and production builds. There is no application server or database; documents are loaded from files or the bundled template and exported through browser downloads.
+The application runs in the browser with Preact, Signals, Canvas 2D, and Three.js. Vite provides development and the website build; esbuild produces a portable HTML edition. There is no application server or database; documents are loaded from files or the bundled template and exported through browser downloads.
 
 The diagrams use Mermaid. View this file in a Markdown viewer that supports Mermaid. The application's documentation dialogs currently render Markdown with Marked and DOMPurify; they load the user and developer guides and do not interpret Mermaid blocks.
 
@@ -263,6 +263,10 @@ Camera fitting uses room geometry, excluding light helpers. Fit room preserves t
 
 Vite reads `index.html` and builds the TypeScript entry point and its imports. YAML and documentation Markdown use `?raw` imports, so their text is bundled without runtime file requests. Three.js and OrbitControls are loaded through dynamic imports. The output is a static app with separate JavaScript and CSS assets under `dist/`, served locally with `npm run preview` or another HTTP server.
 
+For handing over the app, [scripts/build-portable.mjs](../scripts/build-portable.mjs) bundles the same source with esbuild into `dist/tiling-editor.html`. CSS, raw assets, and JavaScript are inlined. Dynamic imports are bundled into the file, while WebGL initialization still occurs when the 3D preview is activated. The inline script uses the classic IIFE format, allowing direct `file://` opening without the CORS restrictions associated with local JavaScript modules. Closing script and style tags in embedded content are escaped before insertion into the HTML shell. This build uses no external resources for the bundled application and template.
+
+`npm run build` creates both editions. `npm run build:portable` creates only the portable file. Both use the same source modules; the portable build adds no second application implementation. Changes to code, styles, or bundled documentation require rebuilding before handing over the file.
+
 `initializeDocumentation()` connects the existing user and developer help buttons. On click, Marked parses the appropriate Markdown text and DOMPurify sanitizes the resulting HTML before it is inserted into the dialog. Documentation rendering is independent of model state.
 
 Strict TypeScript checking runs before the production build. Prettier defines the source and documentation format. The main verification command is:
@@ -271,13 +275,14 @@ Strict TypeScript checking runs before the production build. Prettier defines th
 npm run check
 ```
 
-| Check                     | Coverage                                                                                                                   |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Formatting and TypeScript | Consistent formatting and compile-time model, component, and dependency contracts.                                         |
-| Pattern and model tests   | Real TypeScript modules, model operations, serialization, placement, geometry, layering, and resource reuse.               |
-| UI tests                  | Bundled source in jsdom: startup, sidebar actions, reordering, selection, reactive updates, draft protection, and dialogs. |
-| Markdown tests            | Markdown output and HTML sanitization.                                                                                     |
-| Built-app smoke test      | Emitted production code, asset serving through Vite preview, startup, documentation, and template loading.                 |
+| Check                     | Coverage                                                                                                                                             |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Formatting and TypeScript | Consistent formatting and compile-time model, component, and dependency contracts.                                                                   |
+| Pattern and model tests   | Real TypeScript modules, model operations, serialization, placement, geometry, layering, and resource reuse.                                         |
+| UI tests                  | Bundled source in jsdom: startup, sidebar actions, reordering, selection, reactive updates, draft protection, and dialogs.                           |
+| Markdown tests            | Markdown output and HTML sanitization.                                                                                                               |
+| Built-app smoke test      | Emitted production code, asset serving through Vite preview, startup, documentation, and template loading.                                           |
+| Portable smoke test       | HTML copied to an isolated folder, executed through a file URL with no external resources; startup, template, help, YAML application, and downloads. |
 
 The automated UI tests use real Three.js geometry with mocked WebGL rendering. The built-app test also mocks Canvas and rebundles emitted JavaScript for jsdom. Real-browser checks are needed to verify native module loading, GPU output, and pointer behavior.
 

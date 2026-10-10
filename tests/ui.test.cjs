@@ -241,7 +241,17 @@ const wait = () => new Promise((r) => setTimeout(r, 160));
       JSON.parse(JSON.stringify(codec.decode(codec.encode(snapshot)).lights3d)),
       JSON.parse(JSON.stringify(snapshot.lights3d)),
     );
-  cards[1].querySelector('.remove-element').click();
+  assert(!controls.querySelector('.remove-element'));
+  const removeLight = cards[1].querySelector('summary .control-name-remove');
+  assert.equal(removeLight.getAttribute('aria-label'), 'Remove light Directional light 2');
+  const lightCardOpen = cards[1].open;
+  removeLight.click();
+  assert.equal(cards[1].open, lightCardOpen, 'Removing a light does not toggle its card');
+  assert.equal(test.planService.data.lights3d.length, 2, 'Removal waits for confirmation');
+  document.querySelector('.confirm-dialog button').click();
+  assert.equal(test.planService.data.lights3d.length, 2, 'Cancel keeps both lights');
+  assert.equal(test.threePreview.lights.size, 2);
+  removeLight.click();
   document.querySelector('.confirm-remove').click();
   await wait();
   assert.equal(test.planService.data.lights3d.length, 1);

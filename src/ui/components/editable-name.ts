@@ -22,7 +22,7 @@ export function EditableName({
     }
   }, [editing]);
   const finish = (commit: boolean) => {
-    if (commit) onRename(input.current?.value || '');
+    if (commit) onRename?.(input.current?.value || '');
     setEditing(false);
   };
   return h(
@@ -49,23 +49,24 @@ export function EditableName({
           },
         })
       : h('strong', null, title),
-    h(
-      'button',
-      {
-        type: 'button',
-        class: 'control-name-edit',
-        'aria-label': `Edit ${title} name`,
-        title: 'Edit name',
-        onPointerDown: (e: JSX.TargetedEvent<HTMLButtonElement, PointerEvent>) =>
-          e.preventDefault(),
-        onClick: (e: JSX.TargetedEvent<HTMLButtonElement, MouseEvent>) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setEditing(true);
+    onRename &&
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'control-name-edit',
+          'aria-label': `Edit ${title} name`,
+          title: 'Edit name',
+          onPointerDown: (e: JSX.TargetedEvent<HTMLButtonElement, PointerEvent>) =>
+            e.preventDefault(),
+          onClick: (e: JSX.TargetedEvent<HTMLButtonElement, MouseEvent>) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setEditing(true);
+          },
         },
-      },
-      '✎',
-    ),
+        '✎',
+      ),
     onRemove &&
       h(
         'button',

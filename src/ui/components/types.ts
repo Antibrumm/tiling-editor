@@ -22,7 +22,7 @@ export interface PatternSelectProps {
 }
 export interface EditableNameProps {
   title: string;
-  onRename(value: string): void;
+  onRename?: (value: string) => void;
   onRemove?: () => void;
   kind: string;
 }
