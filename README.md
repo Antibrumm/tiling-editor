@@ -45,7 +45,8 @@ Open http://localhost:4173. Preview serves the existing build; rebuild after sou
 | `src/dom.ts` | Typed required DOM elements and Canvas context access |
 | `tsconfig.json` | Strict TypeScript checking without emitting files |
 | `src/styles.css` | Editor styles |
-| `index.html` | Page structure, controls, documentation, and starter YAML template |
+| `index.html` | Page structure, controls, and documentation |
+| `src/assets/base-model.yaml` | Starter plan imported as text through Vite |
 | `vite.config.ts` | Preact integration, asset builds, development server, and local build preview |
 | `tests/pattern.test.cjs` | Pattern rotation defaults, edits, and YAML persistence |
 | `tests/model.test.cjs` | Model validation, persistence, placement math, face visibility, element layering, and light behavior |

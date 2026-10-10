@@ -2,7 +2,7 @@ const fs=require('fs'),assert=require('assert'),esbuild=require('esbuild');
 const {JSDOM,VirtualConsole}=require('jsdom');
 const source=fs.readFileSync('src/editor.ts','utf8').replace("import './styles.css';",'').replace('}, paintSurfacePattern)', '}, paintSurfacePattern, () => new window.TestRenderer())').replace('    init();', '    init();');
 const instrumented=source.replace('      publishPersistentPlan();\n      ViewController.updateView();','      window.editorTest={threePreview,planService,selection,effectivePlan,yamlEditingSignal,YamlCodec,SvgCodec};\n      publishPersistentPlan();\n      ViewController.updateView();');
-const bundle=esbuild.buildSync({stdin:{contents:instrumented,resolveDir:process.cwd()+'/src',sourcefile:'test-editor.mjs',loader:'ts'},bundle:true,format:'iife',write:false,target:'es2020'}).outputFiles[0].text;
+const bundle=esbuild.buildSync({stdin:{contents:instrumented,resolveDir:process.cwd()+'/src',sourcefile:'test-editor.mjs',loader:'ts'},bundle:true,loader:{'.yaml':'text'},format:'iife',write:false,target:'es2020'}).outputFiles[0].text;
 const html=fs.readFileSync('index.html','utf8').replace(/<script type="module" src="\.\/src\/editor.ts"><\/script>/,()=>'<script>'+bundle.replace(/<\/script/gi,'<\\/script')+'</script>');
 const errors=[],vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(e.message));
 const dom=new JSDOM(html,{runScripts:'dangerously',pretendToBeVisual:true,url:'https://editor.test/',virtualConsole:vc,beforeParse(window){

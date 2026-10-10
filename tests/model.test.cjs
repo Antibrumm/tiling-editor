@@ -90,7 +90,7 @@ const previous=floor.group;
 preview.update(service.snapshot());assert.strictEqual(preview.entries.get('floor').group,previous,'Unchanged meshes are reused');
 service.setObjectValue('floor',0,'width',180);preview.update(service.snapshot());assert.notStrictEqual(preview.entries.get('floor').group,previous,'Changed objects rebuild');
 service.removeWall('back');preview.update(service.snapshot());assert.equal(preview.entries.size,1,'Removed surfaces are disposed');
-const templateSource=fs.readFileSync('index.html','utf8').match(/<script id="base-model-yaml" type="text\/yaml">([\s\S]*?)<\/script>/)[1];
+const templateSource=fs.readFileSync('src/assets/base-model.yaml','utf8');
 const template=context.YamlCodec.decode(templateSource);
 preview.update(template);preview.scene.updateMatrixWorld(true);
 const inward={back:[0,-1,0],left:[1,0,0],right:[-1,0,0],front:[0,1,0],'armor-left':[0,-1,0],'armor-back':[-1,0,0]};

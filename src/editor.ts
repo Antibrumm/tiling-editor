@@ -1,4 +1,5 @@
 import './styles.css';
+import baseModelYaml from './assets/base-model.yaml?raw';
 import { getElement, get2DContext } from './dom';
 import type { Plan, Wall, PlanObject, Pattern, Point, Position, SelectionHit, Bounds } from './model/types';
 import type { PlanChange } from './model/events';
@@ -44,7 +45,6 @@ interface Gesture { pointerId: number; startX: number; startY: number; lastX: nu
           this.interactionPlan = null;
         }
       }
-      const baseModelYaml = getElement('base-model-yaml').textContent;
       const planService = new PlanService({}, () => publishPersistentPlan());
       const planSignal = signal(planService.snapshot());
       const interactionPlanSignal = signal<Plan | null>(null);

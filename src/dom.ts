@@ -52,7 +52,6 @@ interface EditorElements {
   'dev-help-dialog': HTMLDialogElement;
   'dev-help-dialog-title': HTMLElement;
   'close-dev-help': HTMLButtonElement;
-  'base-model-yaml': HTMLElement;
 }
 export function getElement<K extends keyof EditorElements>(id: K): EditorElements[K];
 export function getElement(id: string): HTMLElement;
