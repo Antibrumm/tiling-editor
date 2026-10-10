@@ -26,6 +26,7 @@ const loadModule = require('./load-module.cjs');
 Object.assign(
   context,
   loadModule('src/model/plan-service.ts'),
+  loadModule('src/model/scene-placement.ts'),
   loadModule('src/model/object-layers.ts'),
   loadModule('src/codecs/yaml.ts'),
 );

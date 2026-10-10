@@ -1,7 +1,7 @@
 import type * as THREE from 'three';
 import type { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { Plan, Wall, Light, Bounds, SelectionHit } from '../model/types';
-import { ScenePlacement } from '../model/plan-service';
+import { ScenePlacement } from '../model/scene-placement';
 import { ObjectLayers } from '../model/object-layers';
 import { getElement, get2DContext } from '../dom';
 import type { PatternPainter, PatternSurface } from './pattern-painter';

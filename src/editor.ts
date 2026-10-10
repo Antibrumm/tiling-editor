@@ -1,38 +1,39 @@
+import { EditorState } from './ui/editor-state';
+import { ViewController } from './ui/view-controller';
+import { SourcePresentation } from './ui/source-presentation';
+import { UiFeedback } from './ui/feedback';
+import { TitleController } from './ui/title-controller';
+import { CanvasViewport } from './ui/canvas-viewport';
+import { RenderScheduler } from './rendering/render-scheduler';
+import { Selection } from './ui/selection';
+import { PointerController } from './ui/pointer-controller';
+import { CanvasRenderer } from './rendering/canvas-renderer';
+import { YamlSourceEditor } from './ui/yaml-source-editor';
+import { EditorApp } from './ui/editor-app';
+import type { ViewBox, ViewState } from './ui/types';
 import './styles.css';
 import { initializeDocumentation } from './ui/documentation';
 import baseModelYaml from './assets/base-model.yaml?raw';
 import { getElement, get2DContext } from './dom';
-import type {
-  Plan,
-  Wall,
-  PlanObject,
-  Pattern,
-  Point,
-  Position,
-  SelectionHit,
-  Bounds,
-} from './model/types';
+import type { Plan, Wall, PlanObject, Pattern, Point } from './model/types';
 import type { PlanChange } from './model/events';
 import type { ComponentChildren, JSX } from 'preact';
-import type { PatternSurface } from './rendering/pattern-painter';
+
 import { createPatternPainter } from './rendering/pattern-painter';
 import { ThreePreview } from './rendering/three-preview';
 import { YamlCodec } from './codecs/yaml';
 import { SvgCodec } from './codecs/svg';
 import { number } from './codecs/format';
-import { PlanService, PlanNormalizer, ScenePlacement } from './model/plan-service';
-import { GeometryTools, HitTester } from './model/geometry';
+import { PlanService } from './model/plan-service';
+import { PlanNormalizer } from './model/plan-normalizer';
+import { ScenePlacement } from './model/scene-placement';
+import { GeometryTools } from './model/geometry';
+import { HitTester } from './model/hit-tester';
 
 import { h, render, Fragment } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { createPortal } from 'preact/compat';
-import { signal, computed, effect, batch } from '@preact/signals';
-
-type ViewBox = [number, number, number, number];
-interface ViewState {
-  scale: number;
-  box: ViewBox;
-}
+import { signal, computed, effect } from '@preact/signals';
 type ReorderType = 'pattern' | 'wall' | 'object';
 interface NumberFieldProps {
   label: string;
@@ -69,45 +70,13 @@ interface CardProps {
   selected?: boolean;
   defaultOpen?: boolean;
 }
-interface Gesture {
-  pointerId: number;
-  startX: number;
-  startY: number;
-  lastX: number;
-  lastY: number;
-  startWorld: Position;
-  hit: SelectionHit | null;
-  target: { semantic: SelectionHit } | null;
-  initial: number[] | null;
-  dragPlan: Plan | null;
-  wallRotation: number;
-  moved: boolean;
-  mode: 'drag' | 'pan';
-}
 function init() {
-  const normalizer = new PlanNormalizer();
-  const yamlCodec = new YamlCodec(normalizer);
-  const svgCodec = new SvgCodec(normalizer);
-  const scenePlacement = new ScenePlacement();
-  const geometryTools = new GeometryTools();
-  ('use strict');
-  class EditorState {
-    selectedWallId: string | null;
-    selectedObjectName: string | null;
-    selectedObjectIndex: number | null;
-    interactionPlan: Plan | null;
-    sourceVisible: boolean;
-    splitView: boolean;
-    constructor() {
-      this.selectedWallId = null;
-      this.selectedObjectName = null;
-      this.selectedObjectIndex = null;
-      this.sourceVisible = false;
-      this.splitView = false;
-      this.interactionPlan = null;
-    }
-  }
-  const planService = new PlanService({}, () => publishPersistentPlan(), normalizer);
+  const normalizer: PlanNormalizer = new PlanNormalizer();
+  const yamlCodec: YamlCodec = new YamlCodec(normalizer);
+  const svgCodec: SvgCodec = new SvgCodec(normalizer);
+  const scenePlacement: ScenePlacement = new ScenePlacement();
+  const geometryTools: GeometryTools = new GeometryTools();
+  const planService: PlanService = new PlanService({}, () => publishPersistentPlan(), normalizer);
   const planSignal = signal(planService.snapshot());
   const interactionPlanSignal = signal<Plan | null>(null);
   const lightVisibleSignal = signal(false);
@@ -166,177 +135,80 @@ function init() {
     objectResetSnapshots.get(wallName)![objectIndex] = structuredClone(baseline);
     uiFeedback.message(`${baseline.name || 'Element'} reset.`);
   };
-  class ViewController {
-    public updateViewMode() {
-      const split = splitToggle.checked,
-        showSource = sourceToggle.checked,
-        showThree = threeToggle.checked;
-      sourceToggle.disabled = split;
-      splitToggle.disabled = showSource;
-      viewPanels.classList.toggle('side-by-side', split);
-      preview.hidden = showThree || (!split && showSource);
-      threeContainer.hidden = !showThree || (!split && showSource);
-      if (!threeContainer.hidden) threePreview.activate();
-      sourceView.hidden = !split && !showSource;
-      getElement('view-title').textContent = split
-        ? (showThree ? '3D preview' : 'Preview') + ' + YAML source'
-        : showSource
-          ? 'YAML source'
-          : showThree
-            ? '3D preview'
-            : 'Preview';
-      requestAnimationFrame(viewController.drawCanvas);
-    }
-    public updateView() {
-      zoomLevel.textContent = Math.round(view.scale * 100) + '%';
-      viewController.drawCanvas();
-    }
-    public drawCanvasNow() {
-      canvasRenderFrame = 0;
-      canvasRenderer.paint(effectivePlan.value);
-    }
-    public drawCanvas() {
-      renderScheduler.request();
-    }
-    public zoomAt(factor: number, clientX: number, clientY: number) {
-      viewport.zoomAt(clientX, clientY, factor);
-    }
-    public fittedDrawingBox(paddingRatio = 0.04): ViewBox | null {
-      const plan = effectivePlan.value;
-      const bounds = geometryTools.planBounds(plan);
-      if (!bounds) return null;
-      const minY = plan.canvas.flipY - bounds.maxY,
-        maxY = plan.canvas.flipY - bounds.minY;
-      const width = bounds.maxX - bounds.minX,
-        height = maxY - minY;
-      if (!(width > 0 && height > 0)) return null;
-      const pad = Math.max(width, height) * paddingRatio;
-      return [bounds.minX - pad, minY - pad, width + pad * 2, height + pad * 2];
-    }
-    public fitView() {
-      view.scale = 1;
-      view.box = viewController.fittedDrawingBox() || [...baseBox];
-      viewController.updateView();
-    }
-    public drawingBounds() {
-      const bounds = geometryTools.planBounds(effectivePlan.value);
-      return bounds
-        ? {
-            x: bounds.minX,
-            y: bounds.minY,
-            width: bounds.maxX - bounds.minX,
-            height: bounds.maxY - bounds.minY,
-          }
-        : null;
-    }
-  }
-  const viewController = new ViewController();
-  class SourcePresentation {
-    private escapeHtml(value: string) {
-      return value.replace(
-        /[&<>"]/g,
-        (c) =>
-          (({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }) as Record<string, string>)[
-            c
-          ],
-      );
-    }
-    public updateHighlight() {
-      highlightCode.innerHTML =
-        source.value
-          .split('\n')
-          .map((line) => {
-            if (/^\s*#/.test(line))
-              return (
-                '<span class="syntax-comment">' + sourcePresentation.escapeHtml(line) + '</span>'
-              );
-            const match = line.match(/^(\s*)([A-Za-z_][A-Za-z0-9_-]*)(\s*:\s*)(.*)$/);
-            if (!match) return sourcePresentation.escapeHtml(line);
-            const scalar = match[4],
-              hs =
-                scalar === '|' || scalar === '|-' || scalar === '|+'
-                  ? '<span class="syntax-punctuation">' +
-                    sourcePresentation.escapeHtml(scalar) +
-                    '</span>'
-                  : '<span class="syntax-value">' +
-                    sourcePresentation.escapeHtml(scalar) +
-                    '</span>';
-            return (
-              sourcePresentation.escapeHtml(match[1]) +
-              '<span class="syntax-attribute">' +
-              sourcePresentation.escapeHtml(match[2]) +
-              '</span>' +
-              sourcePresentation.escapeHtml(match[3]) +
-              hs
-            );
-          })
-          .join('\n') + '\n';
-      highlight.scrollTop = source.scrollTop;
-      highlight.scrollLeft = source.scrollLeft;
-    }
-  }
-  const sourcePresentation = new SourcePresentation();
-  class UiFeedback {
-    private timer: ReturnType<typeof setTimeout> | undefined;
-    public message(value: string) {
-      status.textContent = value;
-      clearTimeout(uiFeedback.timer);
-      uiFeedback.timer = setTimeout(() => {
-        status.textContent = '';
-      }, 3500);
-    }
-  }
-  const uiFeedback = new UiFeedback();
-  class TitleController {
-    public update() {
-      const name = planService.name;
-      planTitle.textContent = name;
-      document.title = `${name} · Canvas editor`;
-    }
-    public downloadBaseName() {
-      const safe = planService.name
-        .trim()
-        .toLowerCase()
-        .normalize('NFKD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-      return safe || 'tiling-plan';
-    }
-    public beginEdit() {
-      if (document.getElementById('plan-title-input')) return;
-      const input = document.createElement('input');
-      input.id = 'plan-title-input';
-      input.className = 'title-input';
-      input.type = 'text';
-      input.value = planService.name;
-      input.setAttribute('aria-label', 'Plan title');
-      planTitle.hidden = true;
-      editPlanTitle.before(input);
-      input.focus();
-      input.select();
-      let finished = false;
-      const finish = (commit: boolean) => {
-        if (finished) return;
-        finished = true;
-        if (commit) planService.setName(input.value);
-        input.remove();
-        planTitle.hidden = false;
-        titleController.update();
-      };
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          finish(true);
-        } else if (e.key === 'Escape') {
-          e.preventDefault();
-          finish(false);
-        }
-      });
-      input.addEventListener('blur', () => finish(true));
-    }
-  }
-  const titleController = new TitleController();
+  const viewController: ViewController = new ViewController({
+    get splitToggle() {
+      return splitToggle;
+    },
+    get sourceToggle() {
+      return sourceToggle;
+    },
+    get threeToggle() {
+      return threeToggle;
+    },
+    get viewPanels() {
+      return viewPanels;
+    },
+    get preview() {
+      return preview;
+    },
+    get threeContainer() {
+      return threeContainer;
+    },
+    get threePreview() {
+      return threePreview;
+    },
+    get sourceView() {
+      return sourceView;
+    },
+    get zoomLevel() {
+      return zoomLevel;
+    },
+    get view() {
+      return view;
+    },
+    get canvasRenderer() {
+      return canvasRenderer;
+    },
+    effectivePlan,
+    get renderScheduler() {
+      return renderScheduler;
+    },
+    get viewport() {
+      return viewport;
+    },
+    geometryTools,
+    get baseBox() {
+      return baseBox;
+    },
+    set baseBox(value: ViewBox) {
+      baseBox = value;
+    },
+  });
+  const sourcePresentation: SourcePresentation = new SourcePresentation({
+    get highlightCode() {
+      return highlightCode;
+    },
+    get source() {
+      return source;
+    },
+    get highlight() {
+      return highlight;
+    },
+  });
+  const uiFeedback: UiFeedback = new UiFeedback({
+    get status() {
+      return status;
+    },
+  });
+  const titleController: TitleController = new TitleController({
+    planService,
+    get planTitle() {
+      return planTitle;
+    },
+    get editPlanTitle() {
+      return editPlanTitle;
+    },
+  });
   const preview = getElement('preview');
   const stage = getElement('canvas-stage');
   const canvas = getElement('plan-canvas');
@@ -779,7 +651,7 @@ function init() {
             onChange: (e: JSX.TargetedEvent<HTMLInputElement, Event>) => {
               const file = e.currentTarget.files?.[0];
               if (file) {
-                const reader = new FileReader();
+                const reader: FileReader = new FileReader();
                 reader.onload = () => set('tileTexture', String(reader.result || ''));
                 reader.readAsDataURL(file);
               }
@@ -1204,7 +1076,7 @@ function init() {
   }
   const sidebarMount = document.createElement('div');
   wallControls.parentNode!.append(sidebarMount);
-  const editorState = new EditorState();
+  const editorState: EditorState = new EditorState();
   Object.defineProperty(editorState, 'interactionPlan', {
     get: () => interactionPlanSignal.value,
     set: (value) => {
@@ -1247,351 +1119,25 @@ function init() {
     if (splitToggle.checked) sourceToggle.checked = false;
     viewController.updateViewMode();
   });
-  class CanvasViewport {
-    minZoom: number;
-    maxZoom: number;
-    constructor(
-      public canvas: HTMLCanvasElement,
-      public view: ViewState,
-      public onChange: () => void,
-    ) {
-      this.canvas = canvas;
-      this.view = view;
-      this.onChange = onChange;
-      this.minZoom = 0.25;
-      this.maxZoom = 30;
-    }
-    metrics() {
-      const rect = this.canvas.getBoundingClientRect();
-      const scale = Math.min(rect.width / this.view.box[2], rect.height / this.view.box[3]);
-      const width = this.view.box[2] * scale;
-      const height = this.view.box[3] * scale;
-      return {
-        rect,
-        scale,
-        left: (rect.width - width) / 2,
-        top: (rect.height - height) / 2,
-        width,
-        height,
-      };
-    }
-    screenToWorld(clientX: number, clientY: number) {
-      const viewport = this.metrics();
-      return {
-        x: this.view.box[0] + (clientX - viewport.rect.left - viewport.left) / viewport.scale,
-        y: this.view.box[1] + (clientY - viewport.rect.top - viewport.top) / viewport.scale,
-      };
-    }
-    screenToPlan(clientX: number, clientY: number) {
-      return this.screenToWorld(clientX, clientY);
-    }
-    zoomAt(clientX: number, clientY: number, factor: number) {
-      const next = Math.max(this.minZoom, Math.min(this.maxZoom, this.view.scale * factor));
-      if (next === this.view.scale) return;
-      const anchor = this.screenToWorld(clientX, clientY);
-      const ratio = this.view.scale / next;
-      this.view.box[0] = anchor.x - (anchor.x - this.view.box[0]) * ratio;
-      this.view.box[1] = anchor.y - (anchor.y - this.view.box[1]) * ratio;
-      this.view.box[2] *= ratio;
-      this.view.box[3] *= ratio;
-      this.view.scale = next;
-      this.onChange?.();
-    }
-    panByScreenDelta(dx: number, dy: number) {
-      const { scale } = this.metrics();
-      if (!scale) return;
-      this.view.box[0] -= dx / scale;
-      this.view.box[1] -= dy / scale;
-      this.onChange?.();
-    }
-  }
-  const viewport = new CanvasViewport(canvas, view, viewController.updateView);
-  let canvasRenderToken = 0;
-  let canvasRenderFrame = 0;
-  class RenderScheduler {
-    pending: boolean;
-    constructor(public render: () => void) {
-      this.render = render;
-      this.pending = false;
-    }
-    request() {
-      if (this.pending) return;
-      this.pending = true;
-      canvasRenderFrame = requestAnimationFrame(() => {
-        this.pending = false;
-        this.render();
-      });
-    }
-  }
-  const renderScheduler = new RenderScheduler(viewController.drawCanvasNow);
+  const viewport: CanvasViewport = new CanvasViewport(canvas, view, viewController.updateView);
+  const renderScheduler: RenderScheduler = new RenderScheduler(viewController.drawCanvasNow);
   new ResizeObserver(viewController.drawCanvas).observe(stage);
-  class Selection {
-    constructor(
-      public state: EditorState,
-      public requestRender: () => void,
-    ) {
-      this.state = state;
-      this.requestRender = requestRender;
-    }
-    select(hit: SelectionHit | null) {
-      this.state.selectedWallId = hit?.wallId || null;
-      this.state.selectedObjectName = hit?.objectName || null;
-      this.state.selectedObjectIndex = hit?.type === 'object' ? hit.objectIndex : null;
-      this.requestRender?.();
-    }
-    clear() {
-      this.select(null);
-    }
-  }
 
-  class PointerController {
-    gesture: Gesture | null;
-    touchPoints: Map<number, Position>;
-    pinch: { ids: number[]; distance: number; midX: number; midY: number } | null;
-    clickThreshold: number;
-    constructor(
-      public element: HTMLElement,
-      public viewport: CanvasViewport,
-      public hitTester: HitTester,
-      public selection: Selection,
-      public planService: PlanService,
-    ) {
-      this.element = element;
-      this.viewport = viewport;
-      this.hitTester = hitTester;
-      this.selection = selection;
-      this.planService = planService;
-      this.gesture = null;
-      this.touchPoints = new Map();
-      this.pinch = null;
-      this.clickThreshold = 5;
-      this.bind();
-    }
-    bind() {
-      this.element.addEventListener(
-        'wheel',
-        (event) => {
-          event.preventDefault();
-          this.viewport.zoomAt(event.clientX, event.clientY, Math.exp(-event.deltaY * 0.0015));
-        },
-        { passive: false },
-      );
-      this.element.addEventListener('pointerdown', (event) => this.pointerDown(event));
-      this.element.addEventListener('pointermove', (event) => this.pointerMove(event));
-      this.element.addEventListener('pointerup', (event) => this.pointerUp(event));
-      this.element.addEventListener('pointercancel', (event) => this.pointerCancel(event));
-    }
-    resolveTarget(hit: SelectionHit | null) {
-      return hit ? { semantic: hit } : null;
-    }
-    pointerDown(event: PointerEvent) {
-      if (event.target instanceof Element && event.target.closest('.zoom-controls')) return;
-      if (event.pointerType === 'touch') {
-        this.touchPoints.set(event.pointerId, { x: event.clientX, y: event.clientY });
-        try {
-          this.element.setPointerCapture(event.pointerId);
-        } catch (_) {}
-        if (this.touchPoints.size >= 2) {
-          const points = [...this.touchPoints.entries()].slice(0, 2);
-          const a = points[0][1],
-            b = points[1][1];
-          this.pinch = {
-            ids: [points[0][0], points[1][0]],
-            distance: Math.max(1, Math.hypot(b.x - a.x, b.y - a.y)),
-            midX: (a.x + b.x) / 2,
-            midY: (a.y + b.y) / 2,
-          };
-          this.gesture = null;
-          editorState.interactionPlan = null;
-          this.element.classList.add('dragging');
-          event.preventDefault();
-          return;
-        }
-      }
-      if (event.button !== 0) return;
-      const world = this.viewport.screenToWorld(event.clientX, event.clientY);
-      const hit = this.hitTester.hitTest(world);
-      const target = this.resolveTarget(hit);
-      const dragPlan = hit && target ? structuredClone(planSignal.value) : null;
-      const dragWall = hit ? normalizer.wallIn(dragPlan, hit.wallId) : null;
-      const dragObject =
-        hit?.type === 'object'
-          ? dragWall?.objects[hit.objectIndex] ||
-            dragWall?.objects.find((object) => object.name === hit.objectName)
-          : null;
-      const initial =
-        hit?.type === 'wall' && dragWall
-          ? [dragWall.x, dragWall.y]
-          : hit?.type === 'object' && dragObject
-            ? [dragObject.x, dragObject.y]
-            : null;
-      if (dragPlan) interactionPlanSignal.value = dragPlan;
-      this.gesture = {
-        pointerId: event.pointerId,
-        startX: event.clientX,
-        startY: event.clientY,
-        lastX: event.clientX,
-        lastY: event.clientY,
-        startWorld: world,
-        hit,
-        target,
-        initial,
-        dragPlan,
-        wallRotation: dragWall?.rotation || 0,
-        moved: false,
-        mode: hit && target ? 'drag' : 'pan',
-      };
-      if (hit) this.selection.select(hit);
-      this.element.setPointerCapture(event.pointerId);
-      this.element.classList.add('dragging');
-    }
-    pointerMove(event: PointerEvent) {
-      if (event.pointerType === 'touch' && this.touchPoints.has(event.pointerId)) {
-        this.touchPoints.set(event.pointerId, { x: event.clientX, y: event.clientY });
-        if (this.pinch) {
-          const a = this.touchPoints.get(this.pinch.ids[0]);
-          const b = this.touchPoints.get(this.pinch.ids[1]);
-          if (a && b) {
-            const distance = Math.max(1, Math.hypot(b.x - a.x, b.y - a.y));
-            const midX = (a.x + b.x) / 2,
-              midY = (a.y + b.y) / 2;
-            this.viewport.panByScreenDelta(midX - this.pinch.midX, midY - this.pinch.midY);
-            this.viewport.zoomAt(midX, midY, distance / this.pinch.distance);
-            this.pinch.distance = distance;
-            this.pinch.midX = midX;
-            this.pinch.midY = midY;
-            event.preventDefault();
-            return;
-          }
-        }
-      }
-      const g = this.gesture;
-      if (!g || event.pointerId !== g.pointerId) return;
-      const dx = event.clientX - g.startX;
-      const dy = event.clientY - g.startY;
-      if (!g.moved && Math.hypot(dx, dy) <= this.clickThreshold) return;
-      g.moved = true;
-      if (g.mode === 'pan') {
-        this.viewport.panByScreenDelta(event.clientX - g.lastX, event.clientY - g.lastY);
-      } else if (g.target && g.initial && g.hit) {
-        const nextPlan = structuredClone(interactionPlanSignal.value);
-        const hit = g.hit;
-        const world = this.viewport.screenToWorld(event.clientX, event.clientY);
-        const deltaX = world.x - g.startWorld.x;
-        const deltaY = -(world.y - g.startWorld.y);
-        if (hit.type === 'wall') {
-          const nextX = Math.round(g.initial[0] + deltaX);
-          const nextY = Math.round(g.initial[1] + deltaY);
-          const wall = normalizer.wallIn(nextPlan, hit.wallId);
-          if (wall) {
-            wall.x = nextX;
-            wall.y = nextY;
-          }
-        } else {
-          const radians = (-g.wallRotation * Math.PI) / 180;
-          const cos = Math.cos(radians),
-            sin = Math.sin(radians);
-          const localX = deltaX * cos - deltaY * sin;
-          const localY = deltaX * sin + deltaY * cos;
-          const nextX = Math.round(g.initial[0] + localX);
-          const nextY = Math.round(g.initial[1] + localY);
-          const wall = normalizer.wallIn(nextPlan, hit.wallId);
-          const object =
-            wall?.objects[hit.objectIndex] ||
-            wall?.objects.find((candidate) => candidate.name === hit.objectName);
-          const outline = wall?.outline.points.map(([x, y]) => ({ x, y })) || [];
-          const width = object?.width || 0;
-          const height = object?.height || 0;
-          if (
-            object &&
-            geometryTools.rectangleInsidePolygon(nextX, nextY, width, height, outline)
-          ) {
-            object.x = nextX;
-            object.y = nextY;
-          }
-        }
-        interactionPlanSignal.value = nextPlan;
-      }
-      g.lastX = event.clientX;
-      g.lastY = event.clientY;
-    }
-    pointerUp(event: PointerEvent) {
-      if (event.pointerType === 'touch' && this.touchPoints.has(event.pointerId)) {
-        const wasPinching = !!this.pinch;
-        this.touchPoints.delete(event.pointerId);
-        if (wasPinching) {
-          this.pinch = null;
-          this.gesture = null;
-          editorState.interactionPlan = null;
-          this.element.classList.remove('dragging');
-          if (this.element.hasPointerCapture(event.pointerId))
-            this.element.releasePointerCapture(event.pointerId);
-          return;
-        }
-      }
-      const g = this.gesture;
-      if (!g || event.pointerId !== g.pointerId) return;
-      if (!g.moved) {
-        interactionPlanSignal.value = null;
-        this.selection.select(g.hit);
-      } else if (g.mode === 'drag' && g.hit) {
-        const hit = g.hit;
-        const wall = normalizer.wallIn(interactionPlanSignal.value, hit.wallId);
-        const object =
-          hit.type === 'object'
-            ? wall?.objects[hit.objectIndex] ||
-              wall?.objects.find((candidate) => candidate.name === hit.objectName)
-            : null;
-        batch(() => {
-          if (hit.type === 'wall' && wall) {
-            this.planService.moveWall(hit.wallId, wall.x, wall.y);
-          } else if (hit.type === 'object' && object) {
-            this.planService.moveObject(
-              hit.wallId,
-              hit.objectIndex,
-              object.x,
-              object.y,
-              hit.objectName,
-            );
-          }
-          editorState.interactionPlan = null;
-        });
-        this.selection.select(g.hit);
-      } else {
-        editorState.interactionPlan = null;
-      }
-      this.finish(event.pointerId);
-    }
-    pointerCancel(event: PointerEvent) {
-      if (event.pointerType === 'touch') {
-        this.touchPoints.delete(event.pointerId);
-        if (this.pinch && this.pinch.ids.includes(event.pointerId)) {
-          this.pinch = null;
-          this.gesture = null;
-          this.element.classList.remove('dragging');
-          return;
-        }
-      }
-      const g = this.gesture;
-      if (!g || event.pointerId !== g.pointerId) return;
-      interactionPlanSignal.value = null;
-      this.finish(event.pointerId);
-    }
-    finish(pointerId: number) {
-      this.gesture = null;
-      this.element.classList.remove('dragging');
-      if (this.element.hasPointerCapture(pointerId)) this.element.releasePointerCapture(pointerId);
-    }
-  }
-
-  const hitTester = new HitTester(() => effectivePlan.value);
-  const selection = new Selection(editorState, viewController.drawCanvas);
-  const pointerController = new PointerController(
+  const hitTester: HitTester = new HitTester(() => effectivePlan.value);
+  const selection: Selection = new Selection(editorState, viewController.drawCanvas);
+  const pointerController: PointerController = new PointerController(
     preview,
     viewport,
     hitTester,
     selection,
     planService,
+    {
+      editorState,
+      planSignal,
+      normalizer,
+      interactionPlanSignal,
+      geometryTools,
+    },
   );
   preview.addEventListener('dblclick', (event) => {
     if (!(event.target instanceof Element && event.target.closest('.zoom-controls')))
@@ -1627,329 +1173,8 @@ function init() {
     threePreview.textureRevision++;
     threePreview.request();
   });
-  class CanvasRenderer {
-    public paint(planInput: Plan) {
-      const plan = planInput;
-      const rect = stage.getBoundingClientRect();
-      if (!rect.width || !rect.height) return;
-      const dpr = window.devicePixelRatio || 1;
-      const pixelWidth = Math.max(1, Math.round(rect.width * dpr));
-      const pixelHeight = Math.max(1, Math.round(rect.height * dpr));
-      if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
-        canvas.width = pixelWidth;
-        canvas.height = pixelHeight;
-        canvas.style.width = rect.width + 'px';
-        canvas.style.height = rect.height + 'px';
-      }
 
-      const metrics = viewport.metrics();
-      const scale = metrics.scale;
-      const box = view.box;
-      const flipY = plan.canvas.flipY;
-      const patterns = new Map(plan.patterns.map((pattern) => [pattern.name, pattern]));
-
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.imageSmoothingEnabled = false;
-      ctx.clearRect(0, 0, rect.width, rect.height);
-      ctx.save();
-      ctx.translate(metrics.left, metrics.top);
-      ctx.scale(scale, scale);
-      ctx.translate(-box[0], -box[1]);
-      ctx.translate(0, flipY);
-      ctx.scale(1, -1);
-
-      const polygonPath = (points: Point[]) => {
-        const path = new Path2D();
-        if (!points.length) return path;
-        path.moveTo(points[0][0], points[0][1]);
-        for (let i = 1; i < points.length; i++) path.lineTo(points[i][0], points[i][1]);
-        path.closePath();
-        return path;
-      };
-      const visiblePlanCorners = [
-        [box[0] + (0 - metrics.left) / scale, flipY - box[1] - (0 - metrics.top) / scale],
-        [box[0] + (rect.width - metrics.left) / scale, flipY - box[1] - (0 - metrics.top) / scale],
-        [
-          box[0] + (rect.width - metrics.left) / scale,
-          flipY - box[1] - (rect.height - metrics.top) / scale,
-        ],
-        [box[0] + (0 - metrics.left) / scale, flipY - box[1] - (rect.height - metrics.top) / scale],
-      ];
-      const visibleBoundsInWall = (wx: number, wy: number, angle: number) => {
-        const c = Math.cos(angle),
-          s = Math.sin(angle);
-        const local = visiblePlanCorners.map(([x, y]) => {
-          const dx = x - wx,
-            dy = y - wy;
-          return [dx * c + dy * s, -dx * s + dy * c];
-        });
-        const xs = local.map((point) => point[0]),
-          ys = local.map((point) => point[1]);
-        return {
-          minX: Math.min(...xs),
-          maxX: Math.max(...xs),
-          minY: Math.min(...ys),
-          maxY: Math.max(...ys),
-        };
-      };
-      const drawPattern = (path: Path2D, outline: PatternSurface, visibleBounds: Bounds | null) =>
-        paintSurfacePattern(ctx, path, outline, patterns, visibleBounds, scale, dpr);
-
-      for (const wall of plan.walls) {
-        const angle = (wall.rotation * Math.PI) / 180;
-        if (!wall.outline.points.length) continue;
-        ctx.save();
-        ctx.translate(wall.x, wall.y);
-        if (angle) ctx.rotate(angle);
-        const path = polygonPath(wall.outline.points);
-        drawPattern(path, wall.outline, visibleBoundsInWall(wall.x, wall.y, angle));
-        for (const region of wall.patternRegions || []) {
-          if (!(region.width > 0 && region.height > 0) || !region.pattern) continue;
-          const regionPath = new Path2D();
-          regionPath.rect(region.x, region.y, region.width, region.height);
-          const regionOutline: PatternSurface = {
-            points: [
-              [region.x, region.y],
-              [region.x + region.width, region.y],
-              [region.x + region.width, region.y + region.height],
-              [region.x, region.y + region.height],
-            ],
-            pattern: region.pattern,
-            patternX: region.patternX,
-            patternY: region.patternY,
-            patternRotation: region.patternRotation,
-            fill: 'transparent',
-          };
-          ctx.save();
-          ctx.clip(path);
-          drawPattern(regionPath, regionOutline, visibleBoundsInWall(wall.x, wall.y, angle));
-          ctx.restore();
-        }
-        if (wall.outline.stroke && wall.outline.stroke !== 'none') {
-          ctx.strokeStyle = wall.outline.stroke;
-          ctx.lineWidth = wall.outline.strokeWidth || 1;
-          ctx.stroke(path);
-        }
-        for (const object of wall.objects) {
-          if (![object.x, object.y, object.width, object.height].every(Number.isFinite)) continue;
-          ctx.globalAlpha = 0.2;
-          ctx.fillStyle = object.fill || 'red';
-          ctx.fillRect(object.x, object.y, object.width, object.height);
-          ctx.globalAlpha = 1;
-        }
-        ctx.restore();
-      }
-      ctx.restore();
-
-      const localToScreen = (wall: Wall, x: number, y: number) => {
-        const angle = (wall.rotation * Math.PI) / 180;
-        const cos = Math.cos(angle),
-          sin = Math.sin(angle);
-        const planX = wall.x + x * cos - y * sin;
-        const planY = wall.y + x * sin + y * cos;
-        return {
-          x: metrics.left + (planX - box[0]) * scale,
-          y: metrics.top + (flipY - planY - box[1]) * scale,
-        };
-      };
-      const paintText = (text: string, x: number, y: number, fontPx: number, weight: number) => {
-        ctx.save();
-        ctx.font = `${weight} ${fontPx}px Inter, Arial, sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.lineJoin = 'round';
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = 'white';
-        ctx.strokeText(text, x, y);
-        ctx.fillStyle = '#192625';
-        ctx.fillText(text, x, y);
-        ctx.restore();
-      };
-      if (!plan.walls.length) {
-        ctx.save();
-        ctx.font = '600 16px Inter, Arial, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#6b7280';
-        ctx.fillText(
-          'Upload your plan or load the template',
-          metrics.left + metrics.width / 2,
-          metrics.top + metrics.height / 2,
-        );
-        ctx.restore();
-      }
-
-      for (const wall of plan.walls) {
-        wall.objects.forEach((object, index) => {
-          const center = localToScreen(
-            wall,
-            object.x + object.width / 2,
-            object.y + object.height / 2,
-          );
-          if (showLabels.checked)
-            paintText(
-              object.name || 'element',
-              center.x,
-              center.y - (showDimensions.checked ? 7 : 0),
-              16,
-              700,
-            );
-          if (showDimensions.checked)
-            paintText(
-              `${number(object.width)} × ${number(object.height)} mm`,
-              center.x,
-              center.y + (showLabels.checked ? 8 : 0),
-              10,
-              600,
-            );
-          const selected =
-            wall.name === editorState.selectedWallId &&
-            editorState.selectedObjectName &&
-            ((editorState.selectedObjectIndex !== null &&
-              index === editorState.selectedObjectIndex) ||
-              (editorState.selectedObjectIndex === null &&
-                object.name === editorState.selectedObjectName));
-          if (selected) {
-            ctx.beginPath();
-            ctx.arc(center.x, center.y, 5, 0, Math.PI * 2);
-            ctx.fillStyle = '#192625';
-            ctx.fill();
-          }
-        });
-        if (
-          wall.name === editorState.selectedWallId &&
-          !editorState.selectedObjectName &&
-          wall.outline.points.length
-        ) {
-          const xs = wall.outline.points.map((point) => point[0]);
-          const ys = wall.outline.points.map((point) => point[1]);
-          const center = localToScreen(
-            wall,
-            (Math.min(...xs) + Math.max(...xs)) / 2,
-            (Math.min(...ys) + Math.max(...ys)) / 2,
-          );
-          ctx.beginPath();
-          ctx.arc(center.x, center.y, 5, 0, Math.PI * 2);
-          ctx.fillStyle = '#192625';
-          ctx.fill();
-        }
-      }
-    }
-
-    render() {
-      viewController.drawCanvas();
-      zoomLevel.textContent = Math.round(view.scale * 100) + '%';
-    }
-  }
-
-  class YamlSourceEditor {
-    syncFromPlan(plan = effectivePlan.value) {
-      if (yamlEditingSignal.value) return;
-      source.value = yamlCodec.encode(plan);
-      sourcePresentation.updateHighlight();
-    }
-
-    apply() {
-      try {
-        const plan = yamlCodec.decode(source.value);
-        app.replaceDocument(plan, {
-          change: { type: 'source-apply' },
-          establishResetPoint: false,
-          fitView: true,
-        });
-        yamlEditingSignal.value = false;
-        sourceStatus.textContent = 'YAML source applied to preview and controls.';
-        sourceStatus.classList.remove('error');
-      } catch (error) {
-        sourceStatus.textContent =
-          'Invalid YAML source: ' + (error instanceof Error ? error.message : String(error));
-        sourceStatus.classList.add('error');
-      }
-    }
-  }
-
-  class EditorApp {
-    constructor(
-      public planService: PlanService,
-      public canvasRenderer: CanvasRenderer,
-      public sourceEditor: YamlSourceEditor,
-    ) {
-      this.planService = planService;
-      this.canvasRenderer = canvasRenderer;
-      this.sourceEditor = sourceEditor;
-    }
-
-    replaceDocument(
-      plan: Plan,
-      {
-        change = { type: 'replace' },
-        establishResetPoint = false,
-        fitView = true,
-      }: { change?: PlanChange; establishResetPoint?: boolean; fitView?: boolean } = {},
-    ) {
-      batch(() => {
-        this.planService.replaceData(plan, change);
-        editorState.interactionPlan = null;
-        yamlEditingSignal.value = false;
-      });
-      if (establishResetPoint) {
-        resetSnapshot = this.planService.snapshot();
-        establishWallResetSnapshots();
-      }
-      selection.clear();
-      threePreview.needsFit = true;
-      const canvas = this.planService.data.canvas;
-      baseBox =
-        canvas.width > 0 && canvas.height > 0
-          ? [canvas.x, canvas.y, canvas.width, canvas.height]
-          : [...EMPTY_VIEW_BOX];
-      view.box = [...baseBox];
-      view.scale = 1;
-      titleController.update();
-      if (fitView) viewController.fitView();
-    }
-
-    loadUploadedPlan(file: File | undefined) {
-      if (!file) return;
-      ActionConsole.log(`Loading “${file.name}”…`);
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const text = String(reader.result || ''),
-            name = file.name.toLowerCase();
-          const isYaml =
-            name.endsWith('.yaml') ||
-            name.endsWith('.yml') ||
-            /yaml/i.test(file.type) ||
-            (!name.endsWith('.svg') && /^\s*format\s*:\s*tiling-plan\b/m.test(text));
-          let plan = isYaml ? yamlCodec.decode(text) : svgCodec.decode(text);
-          const fileBase = file.name.replace(/\.(?:svg|ya?ml)$/i, '').trim();
-          if (!plan.name || plan.name === 'Tiling plan') plan.name = fileBase || 'Tiling plan';
-          this.replaceDocument(plan, {
-            change: { type: 'upload', kind: isYaml ? 'YAML' : 'SVG' },
-            establishResetPoint: true,
-            fitView: true,
-          });
-          sourceStatus.textContent = `Uploaded ${isYaml ? 'YAML' : 'SVG'} loaded as YAML source.`;
-          sourceStatus.classList.remove('error');
-          uiFeedback.message(`${file.name} loaded.`);
-          ActionConsole.log(`Loaded “${file.name}” (${isYaml ? 'YAML' : 'SVG'}).`);
-        } catch (error) {
-          uiFeedback.message(
-            'Invalid plan: ' + (error instanceof Error ? error.message : String(error)),
-          );
-          ActionConsole.log(
-            `Load failed: ${error instanceof Error ? error.message : String(error)}`,
-          );
-        } finally {
-          uploadPlanInput.value = '';
-        }
-      };
-      reader.readAsText(file);
-    }
-  }
-
-  const threePreview = new ThreePreview(
+  const threePreview: ThreePreview = new ThreePreview(
     threeContainer,
     {
       plan: () => effectivePlan.value,
@@ -1970,9 +1195,59 @@ function init() {
     selectedObjectIndexSignal.value;
     threePreview.request();
   });
-  const canvasRenderer = new CanvasRenderer();
-  const yamlSourceEditor = new YamlSourceEditor();
-  const app = new EditorApp(planService, canvasRenderer, yamlSourceEditor);
+  const canvasRenderer: CanvasRenderer = new CanvasRenderer({
+    stage,
+    canvas,
+    viewport,
+    view,
+    ctx,
+    paintSurfacePattern,
+    showLabels,
+    showDimensions,
+    editorState,
+  });
+  const yamlSourceEditor: YamlSourceEditor = new YamlSourceEditor({
+    effectivePlan,
+    yamlEditingSignal,
+    source,
+    yamlCodec,
+    sourcePresentation,
+    get app() {
+      return app;
+    },
+    sourceStatus,
+  });
+  const app: EditorApp = new EditorApp(planService, canvasRenderer, yamlSourceEditor, {
+    editorState,
+    yamlEditingSignal,
+    get resetSnapshot() {
+      return resetSnapshot;
+    },
+    set resetSnapshot(value: Plan) {
+      resetSnapshot = value;
+    },
+    establishWallResetSnapshots,
+    selection,
+    threePreview,
+    get baseBox() {
+      return baseBox;
+    },
+    set baseBox(value: ViewBox) {
+      baseBox = value;
+    },
+    EMPTY_VIEW_BOX,
+    view,
+    titleController,
+    viewController,
+    ActionConsole,
+    yamlCodec,
+    svgCodec,
+    sourceStatus,
+    uiFeedback,
+    get uploadPlanInput() {
+      return uploadPlanInput;
+    },
+  });
   effect(() => {
     effectivePlan.value;
     renderScheduler.request();
@@ -2252,7 +1527,7 @@ function init() {
     }
   });
   getElement('download-yaml').addEventListener('click', () => {
-    const blob = new Blob([yamlCodec.encode(planService.snapshot())], {
+    const blob: Blob = new Blob([yamlCodec.encode(planService.snapshot())], {
       type: 'text/yaml;charset=utf-8',
     });
     const url = URL.createObjectURL(blob);
@@ -2264,7 +1539,7 @@ function init() {
     uiFeedback.message('YAML downloaded.');
   });
   getElement('download').addEventListener('click', () => {
-    const blob = new Blob([svgCodec.encode(planService.snapshot())], {
+    const blob: Blob = new Blob([svgCodec.encode(planService.snapshot())], {
       type: 'image/svg+xml;charset=utf-8',
     });
     const url = URL.createObjectURL(blob);

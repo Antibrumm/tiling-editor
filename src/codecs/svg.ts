@@ -1,4 +1,4 @@
-import { PlanNormalizer } from '../model/plan-service';
+import { PlanNormalizer } from '../model/plan-normalizer';
 import type { Plan, Point } from '../model/types';
 import { number } from './format';
 import { Transform2D } from './transform';

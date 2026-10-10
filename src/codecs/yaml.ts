@@ -1,4 +1,4 @@
-import { PlanNormalizer } from '../model/plan-service';
+import { PlanNormalizer } from '../model/plan-normalizer';
 import type { Plan, PlanInput } from '../model/types';
 import { number } from './format';
 // Parser records stay untyped until normalization coerces the supported fields.
