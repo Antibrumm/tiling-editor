@@ -1,6 +1,11 @@
 import { number } from './format';
 const translateRe =
   /(?:^|\s)translate\(\s*([+-]?(?:\d+\.?\d*|\.\d+))(?:[\s,]+([+-]?(?:\d+\.?\d*|\.\d+)))?\s*\)/;
+/**
+ * Reads translate and rotate components from SVG transform attributes.
+ * Updates translation while retaining the remaining transform text, including when
+ * working with patternTransform. This helper does not evaluate arbitrary SVG matrices.
+ */
 export class Transform2D {
   public translation(element: Element, attribute = 'transform') {
     const match = (element.getAttribute(attribute) || '').match(translateRe);

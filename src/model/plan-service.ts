@@ -17,6 +17,12 @@ function isKey<T extends string>(key: string, keys: readonly T[]): key is T {
   return keys.includes(key as T);
 }
 
+/**
+ * Owns the persistent plan and applies model edits through semantic operations.
+ * Uses an injected PlanNormalizer for input defaults and compatibility conversion.
+ * Each emitted change refreshes canvas bounds, publishes state, and notifies listeners;
+ * snapshot() returns a detached copy for rendering, serialization, and reset baselines.
+ */
 export class PlanService {
   private placement = new ScenePlacement();
   data: Plan;

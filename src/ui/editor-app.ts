@@ -40,6 +40,12 @@ interface EditorAppDependencies {
   uiFeedback: UiFeedback;
   uploadPlanInput: HTMLInputElement;
 }
+/**
+ * Coordinates document replacement and uploaded YAML or SVG loading.
+ * Uses injected model, UI state, codecs, and controllers to clear transient state, reset
+ * selection, refresh titles and views, and report upload results. A reset baseline changes
+ * only when replaceDocument is called with establishResetPoint enabled.
+ */
 export class EditorApp {
   constructor(
     public planService: PlanService,

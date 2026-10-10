@@ -1,5 +1,10 @@
 import type { Plan, Wall, Position } from './types';
 
+/**
+ * Provides geometry calculations without changing plan data.
+ * Computes rotated plan bounds, converts world points to local coordinates, and tests
+ * polygon containment and intersections. Coordinates use the plan's millimeter units.
+ */
 export class GeometryTools {
   public planBounds(planInput: Plan) {
     const plan = planInput;

@@ -1,5 +1,11 @@
 import type { ViewState } from '../ui/types';
 
+/**
+ * Converts browser client coordinates into the fitted 2D canvas view.
+ * Mutates the injected view box for bounded zoom and panning, then calls onChange.
+ * Returned world coordinates precede the plan's flipY conversion; HitTester applies
+ * that conversion when resolving a selection.
+ */
 export class CanvasViewport {
   minZoom: number;
   maxZoom: number;

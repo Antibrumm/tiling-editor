@@ -15,6 +15,12 @@ import type {
   Light,
 } from './types';
 import { ScenePlacement } from './scene-placement';
+/**
+ * Converts partial plan input into complete model data with consistent defaults.
+ * Coerces supported fields, derives canvas bounds, and migrates legacy light and Y-up data.
+ * Uses ScenePlacement to calculate default light aims. Normalization does not replace
+ * the domain checks performed by PlanService mutations and document codecs.
+ */
 export class PlanNormalizer {
   constructor(private placement = new ScenePlacement()) {}
   public finite(value: unknown, fallback = 0) {

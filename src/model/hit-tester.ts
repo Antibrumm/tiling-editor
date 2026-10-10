@@ -1,5 +1,10 @@
 import type { Plan, Position, SelectionHit } from './types';
 import { GeometryTools } from './geometry';
+/**
+ * Finds the wall or object under a point in the 2D viewport's world coordinates.
+ * Reads an injected plan or plan provider, applies flipY and wall transforms, and checks
+ * objects before wall outlines in reverse model order. Returns a semantic selection or null.
+ */
 export class HitTester {
   constructor(
     private planProvider: Plan | (() => Plan),

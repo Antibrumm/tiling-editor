@@ -1,5 +1,10 @@
 import type { Plan, Placement, Wall } from './types';
 
+/**
+ * Resolves explicit or suggested 3D placements for plan surfaces.
+ * Finds the floor and places named room walls around its bounds; unknown walls stay separate.
+ * Positions remain in plan millimeters and yaw in degrees, with the floor on XY and Z up.
+ */
 export class ScenePlacement {
   public floor(plan: Pick<Plan, 'walls'>) {
     return (

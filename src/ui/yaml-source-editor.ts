@@ -17,6 +17,12 @@ interface YamlSourceEditorDependencies {
   app: EditorApp;
   sourceStatus: HTMLElement;
 }
+/**
+ * Synchronizes the editable YAML source with the effective plan and applies source edits.
+ * Reads injected Signals and DOM elements, preserves unapplied drafts during model updates,
+ * and uses YamlCodec plus EditorApp to replace the current document without establishing
+ * a new reset baseline. Parse errors are displayed in the source status element.
+ */
 export class YamlSourceEditor {
   constructor(private dependencies: YamlSourceEditorDependencies) {
     this.syncFromPlan = this.syncFromPlan.bind(this);

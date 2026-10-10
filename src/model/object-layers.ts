@@ -1,5 +1,11 @@
 import type { PlanObject } from './types';
 
+/**
+ * Calculates extrusion base offsets for overlapping wall objects.
+ * Processes larger rectangles first so nested and partially overlapping objects stack
+ * independently of model order. Returns offsets in meters keyed by original object index;
+ * saved object depths remain in millimeters and are converted during calculation.
+ */
 export class ObjectLayers {
   public offsets(objects: PlanObject[]) {
     const offsets = new Map<number, number>(),

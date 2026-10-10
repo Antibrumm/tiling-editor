@@ -32,6 +32,12 @@ interface ViewControllerDependencies {
   geometryTools: GeometryTools;
   baseBox: ViewBox;
 }
+/**
+ * Coordinates preview, YAML source, split view, and 3D visibility.
+ * Uses injected DOM controls, plan state, viewport, render scheduler, and renderers
+ * to update zoom, fit geometry, and request redraws. Methods are bound so DOM listeners
+ * and animation callbacks retain the controller instance.
+ */
 export class ViewController {
   constructor(private dependencies: ViewControllerDependencies) {
     this.updateViewMode = this.updateViewMode.bind(this);

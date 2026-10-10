@@ -4,6 +4,54 @@ The editor is a TypeScript browser application built with Vite. `PlanService` ow
 
 Each class has its own TypeScript file. UI controllers and interaction classes live under `src/ui/`; `CanvasRenderer` and `RenderScheduler` live under `src/rendering/`. `PlanService`, `PlanNormalizer`, `ScenePlacement`, `GeometryTools`, and `HitTester` have separate modules under `src/model/`. The editor entry point constructs and connects these classes through typed dependencies. Services and utilities use initialized classes with public instance methods. `PlanNormalizer` handles input normalization and is injected into `PlanService`, `YamlCodec`, and `SvgCodec`. The editor initializes its codecs, geometry helpers, placement helper, and UI controllers once per editor. `ThreePreview` owns its placement and layering helpers. Internal codec helpers remain private.
 
+## Class reference
+
+Every class has a JSDoc summary beside its declaration. The following index groups the classes by responsibility.
+
+### Model
+
+| Class and source                                  | Responsibility                                                                 |
+| ------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `PlanService` ? `src/model/plan-service.ts`       | Owns the persistent plan and applies model edits through semantic operations.  |
+| `PlanNormalizer` ? `src/model/plan-normalizer.ts` | Converts partial plan input into complete model data with consistent defaults. |
+| `ScenePlacement` ? `src/model/scene-placement.ts` | Resolves explicit or suggested 3D placements for plan surfaces.                |
+| `GeometryTools` ? `src/model/geometry.ts`         | Provides geometry calculations without changing plan data.                     |
+| `HitTester` ? `src/model/hit-tester.ts`           | Finds the wall or object under a point in the 2D viewport's world coordinates. |
+| `ObjectLayers` ? `src/model/object-layers.ts`     | Calculates extrusion base offsets for overlapping wall objects.                |
+
+### Codecs
+
+| Class and source                          | Responsibility                                                                  |
+| ----------------------------------------- | ------------------------------------------------------------------------------- |
+| `YamlCodec` ? `src/codecs/yaml.ts`        | Encodes and decodes the editor's indentation-sensitive tiling-plan YAML format. |
+| `SvgCodec` ? `src/codecs/svg.ts`          | Imports and exports SVG documents using the editor's plan-specific conventions. |
+| `Transform2D` ? `src/codecs/transform.ts` | Reads translate and rotate components from SVG transform attributes.            |
+
+### Rendering
+
+| Class and source                                        | Responsibility                                                                           |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `CanvasRenderer` ? `src/rendering/canvas-renderer.ts`   | Paints a supplied plan into the 2D canvas using injected viewport and UI dependencies.   |
+| `RenderScheduler` ? `src/rendering/render-scheduler.ts` | Coalesces repeated render requests into one animation-frame callback.                    |
+| `ThreePreview` ? `src/rendering/three-preview.ts`       | Owns the lazily initialized Three.js scene, camera, controls, lights, and surface cache. |
+
+### UI and document lifecycle
+
+| Class and source                                       | Responsibility                                                                          |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| `EditorState` ? `src/ui/editor-state.ts`               | Holds transient selection, view visibility, and an optional drag-preview plan.          |
+| `ViewController` ? `src/ui/view-controller.ts`         | Coordinates preview, YAML source, split view, and 3D visibility.                        |
+| `SourcePresentation` ? `src/ui/source-presentation.ts` | Renders a syntax-highlighted overlay for the injected YAML textarea.                    |
+| `UiFeedback` ? `src/ui/feedback.ts`                    | Displays temporary messages in an injected status element.                              |
+| `TitleController` ? `src/ui/title-controller.ts`       | Synchronizes the visible plan title and browser title with PlanService.                 |
+| `CanvasViewport` ? `src/ui/canvas-viewport.ts`         | Converts browser client coordinates into the fitted 2D canvas view.                     |
+| `Selection` ? `src/ui/selection.ts`                    | Applies semantic wall or object hits to an injected EditorState.                        |
+| `PointerController` ? `src/ui/pointer-controller.ts`   | Handles mouse, pen, and touch gestures on the injected preview element.                 |
+| `YamlSourceEditor` ? `src/ui/yaml-source-editor.ts`    | Synchronizes the editable YAML source with the effective plan and applies source edits. |
+| `EditorApp` ? `src/ui/editor-app.ts`                   | Coordinates document replacement and uploaded YAML or SVG loading.                      |
+
+Dependency objects in the editor sometimes use getters so controllers can refer to classes and DOM elements constructed later. These getters must remain lazy until initialization finishes. Methods supplied directly to event listeners or animation callbacks are bound to their instance. Shared view boxes and reset snapshots use setters where a controller needs to replace the value.
+
 ## Plan data
 
 The runtime model is plain JavaScript data. A plan contains a name, units, patterns, and walls. Walls contain position, rotation, an outline, and optionally objects. Objects are wall-local rectangles. Pattern dimensions are derived from `tileWidth + borderSize` and `tileHeight + borderSize`.
@@ -44,4 +92,4 @@ Startup creates an empty document. The integrated **Tiling Bathroom** YAML is lo
 
 ## Extending the editor
 
-For persistent properties, add normalization and mutation support in `PlanService`, then update YAML and SVG serialization only when the property belongs to those interchange contracts. Rendering-only state should stay outside the persisted model. Controls should call model mutations rather than forcing canvas redraws directly.
+For persistent properties, add normalization in `PlanNormalizer` and mutation support in `PlanService`, then update YAML and SVG serialization only when the property belongs to those interchange contracts. Rendering-only state should stay outside the persisted model. Controls should call model mutations rather than forcing canvas redraws directly.

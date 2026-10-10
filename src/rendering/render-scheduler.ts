@@ -1,3 +1,8 @@
+/**
+ * Coalesces repeated render requests into one animation-frame callback.
+ * Owns the pending flag and invokes an injected render function when the frame arrives.
+ * Requests raised during rendering can schedule the following frame.
+ */
 export class RenderScheduler {
   pending: boolean;
   constructor(public render: () => void) {

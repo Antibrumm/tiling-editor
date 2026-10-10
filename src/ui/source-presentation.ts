@@ -3,6 +3,11 @@ interface SourcePresentationDependencies {
   source: HTMLTextAreaElement;
   highlight: HTMLElement;
 }
+/**
+ * Renders a syntax-highlighted overlay for the injected YAML textarea.
+ * Escapes source text before adding markup and synchronizes the overlay's scroll position.
+ * Highlighting leaves the editable source and persistent model untouched.
+ */
 export class SourcePresentation {
   constructor(private dependencies: SourcePresentationDependencies) {
     this.escapeHtml = this.escapeHtml.bind(this);

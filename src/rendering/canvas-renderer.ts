@@ -28,6 +28,12 @@ interface CanvasRendererDependencies {
   showDimensions: HTMLInputElement;
   editorState: EditorState;
 }
+/**
+ * Paints a supplied plan into the 2D canvas using injected viewport and UI dependencies.
+ * Handles pixel density, flipped plan coordinates, clipped tile patterns, objects,
+ * labels, dimensions, and selection markers. Uses the shared pattern painter;
+ * painting changes canvas output without mutating persistent plan data.
+ */
 export class CanvasRenderer {
   constructor(private dependencies: CanvasRendererDependencies) {
     this.paint = this.paint.bind(this);

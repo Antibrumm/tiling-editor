@@ -31,6 +31,13 @@ interface LightEntry {
   helper: THREE.DirectionalLightHelper;
 }
 
+/**
+ * Owns the lazily initialized Three.js scene, camera, controls, lights, and surface cache.
+ * Reads plan and selection through injected callbacks and shares the 2D pattern painter
+ * for texture baking. Converts plan millimeters to meters, reuses unchanged meshes,
+ * and disposes replaced or removed resources. Camera fitting excludes light helpers;
+ * a fit without a preset preserves the current viewing direction.
+ */
 export class ThreePreview {
   private placement = new ScenePlacement();
   private objectLayers = new ObjectLayers();

@@ -17,6 +17,12 @@ interface ParsedPlan {
   light3d?: Record<string, unknown>;
 }
 
+/**
+ * Encodes and decodes the editor's indentation-sensitive tiling-plan YAML format.
+ * Uses an injected PlanNormalizer to supply model defaults and migrate older documents.
+ * Supports the project's schema rather than general YAML syntax; parsing errors are
+ * reported to the caller, which decides how to present them to the user.
+ */
 export class YamlCodec {
   constructor(private normalizer = new PlanNormalizer()) {}
   private scalar(value: unknown) {

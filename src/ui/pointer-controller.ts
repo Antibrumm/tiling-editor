@@ -22,6 +22,12 @@ interface PointerControllerDependencies {
   interactionPlanSignal: Signal<Plan | null>;
   geometryTools: GeometryTools;
 }
+/**
+ * Handles mouse, pen, and touch gestures on the injected preview element.
+ * Uses the viewport and hit tester to distinguish selection, dragging, panning, and pinch zoom.
+ * Drag movement updates a transient plan, constrains objects to their wall polygon, and
+ * commits the final position through PlanService on release. Construction installs listeners.
+ */
 export class PointerController {
   gesture: Gesture | null;
   touchPoints: Map<number, Position>;

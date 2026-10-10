@@ -4,6 +4,12 @@ import { number } from './format';
 import { Transform2D } from './transform';
 import { textureRotationQuarter } from '../rendering/texture-rotation';
 
+/**
+ * Imports and exports SVG documents using the editor's plan-specific conventions.
+ * Uses PlanNormalizer for model defaults and Transform2D for supported transforms.
+ * Checks imported SVG structure and rejects scripts and inline event handlers.
+ * Export derives the view box from geometry; validateRoundTrip compares supported fields.
+ */
 export class SvgCodec {
   constructor(
     private normalizer = new PlanNormalizer(),

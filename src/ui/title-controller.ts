@@ -5,6 +5,12 @@ interface TitleControllerDependencies {
   planTitle: HTMLElement;
   editPlanTitle: HTMLButtonElement;
 }
+/**
+ * Synchronizes the visible plan title and browser title with PlanService.
+ * Uses injected title controls for inline editing: Enter or blur commits, Escape cancels.
+ * Committed names flow through PlanService; downloadBaseName supplies a filename-safe
+ * version of the current name. Methods are bound for use as event callbacks.
+ */
 export class TitleController {
   constructor(private dependencies: TitleControllerDependencies) {
     this.update = this.update.bind(this);

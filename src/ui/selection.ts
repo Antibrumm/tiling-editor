@@ -2,6 +2,11 @@ import type { SelectionHit } from '../model/types';
 
 import { EditorState } from '../ui/editor-state';
 
+/**
+ * Applies semantic wall or object hits to an injected EditorState.
+ * Updates all selection fields together and invokes the supplied render request.
+ * Clearing selection follows the same path without changing persistent plan data.
+ */
 export class Selection {
   constructor(
     public state: EditorState,
