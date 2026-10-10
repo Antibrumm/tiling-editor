@@ -2,7 +2,7 @@ const assert = require('assert');
 const loadModule = require('./load-module.cjs');
 const { PlanService } = loadModule('src/model/plan-service.ts');
 const { YamlCodec } = loadModule('src/codecs/yaml.ts');
-const context = { PlanService, YamlCodec };
+const context = { PlanService, yamlCodec: new YamlCodec() };
 const service = new context.PlanService({
   patterns: [{ name: 'grid', tileWidth: 10, tileHeight: 10 }],
   walls: [
@@ -26,8 +26,8 @@ service.setOutlineValue('wall', 'patternRotation', 37);
 service.setPatternRegion('wall', 0, 'patternRotation', 123);
 assert.equal(service.snapshot().walls[0].outline.patternRotation, 37);
 assert.equal(service.snapshot().walls[0].patternRegions[0].patternRotation, 123);
-const yaml = context.YamlCodec.encode(service.snapshot());
-const decoded = context.YamlCodec.decode(yaml);
+const yaml = context.yamlCodec.encode(service.snapshot());
+const decoded = context.yamlCodec.decode(yaml);
 assert.equal(decoded.walls[0].outline.patternRotation, 37);
 assert.equal(decoded.walls[0].patternRegions[0].patternRotation, 123);
 console.log('Rotation defaults, mutations, and YAML round trip passed.');

@@ -1,11 +1,15 @@
-import { PlanService } from '../model/plan-service';
+import { PlanNormalizer } from '../model/plan-service';
 import type { Plan, Point } from '../model/types';
 import { number } from './format';
 import { Transform2D } from './transform';
 import { textureRotationQuarter } from '../rendering/texture-rotation';
 
 export class SvgCodec {
-  static formatXml(xmlText: string) {
+  constructor(
+    private normalizer = new PlanNormalizer(),
+    private transform = new Transform2D(),
+  ) {}
+  private formatXml(xmlText: string) {
     const tokens = xmlText.replace(/>\s*</g, '><').trim().replace(/</g, '\n<').trim().split('\n');
     let depth = 0;
     const lines = [];
@@ -19,7 +23,7 @@ export class SvgCodec {
     }
     return lines.join('\n');
   }
-  static decode(input: string): Plan {
+  public decode(input: string): Plan {
     const root =
       typeof input === 'string'
         ? new DOMParser().parseFromString(input, 'image/svg+xml').documentElement
@@ -53,7 +57,7 @@ export class SvgCodec {
     if (vb.length !== 4 || vb.some((n) => !Number.isFinite(n)) || vb[2] <= 0 || vb[3] <= 0)
       throw new Error('SVG needs a valid viewBox.');
     const flipped = root.querySelector('#flipped-drawing');
-    const [, fy] = flipped ? Transform2D.translation(flipped) : [0, NaN];
+    const [, fy] = flipped ? this.transform.translation(flipped) : [0, NaN];
     const allPatterns = [...root.querySelectorAll('pattern[id]')];
     const definitions = allPatterns.filter(
       (p) =>
@@ -88,7 +92,7 @@ export class SvgCodec {
       };
     });
     const walls = [...root.querySelectorAll('g.wall')].map((w) => {
-      const [x, y] = Transform2D.translation(w),
+      const [x, y] = this.transform.translation(w),
         outline = w.querySelector(':scope > polygon.outline');
       const fill = outline?.getAttribute('fill') || '';
       const m = fill.match(/^url\(#(.+)\)$/);
@@ -101,14 +105,14 @@ export class SvgCodec {
           ? ref
           : '';
       const [patternX, patternY] = wrapper
-        ? Transform2D.translation(wrapper, 'patternTransform')
+        ? this.transform.translation(wrapper, 'patternTransform')
         : [0, 0];
-      const patternRotation = wrapper ? Transform2D.rotation(wrapper, 'patternTransform') : 0;
+      const patternRotation = wrapper ? this.transform.rotation(wrapper, 'patternTransform') : 0;
       return {
         name: w.id || w.getAttribute('name') || '',
         x,
         y,
-        rotation: Transform2D.rotation(w),
+        rotation: this.transform.rotation(w),
         placement3d: (() => {
           try {
             return JSON.parse(w.getAttribute('data-placement-3d') || 'null');
@@ -127,7 +131,7 @@ export class SvgCodec {
           strokeWidth: numeric(outline?.getAttribute('stroke-width'), 1),
         },
         objects: [...w.querySelectorAll(':scope > rect.obj')].map((o) => {
-          const [tx, ty] = Transform2D.translation(o);
+          const [tx, ty] = this.transform.translation(o);
           return {
             name: o.getAttribute('name') || '',
             x: numeric(o.getAttribute('x')) + tx,
@@ -140,7 +144,7 @@ export class SvgCodec {
         }),
       };
     });
-    return PlanService.normalizeData({
+    return this.normalizer.normalizeData({
       upAxis3d: root.getAttribute('data-up-axis-3d') || undefined,
       lights3d: (() => {
         try {
@@ -166,9 +170,9 @@ export class SvgCodec {
     });
   }
 
-  static encode(planInput: Plan) {
+  public encode(planInput: Plan) {
     const plan = planInput,
-      canvas = PlanService.canvasFromWalls(plan.walls),
+      canvas = this.normalizer.canvasFromWalls(plan.walls),
       ns = 'http://www.w3.org/2000/svg',
       doc = document.implementation.createDocument(ns, 'svg', null),
       svg = doc.documentElement;
@@ -297,9 +301,9 @@ export class SvgCodec {
       }
       drawing.append(g);
     }
-    return SvgCodec.formatXml(new XMLSerializer().serializeToString(svg));
+    return this.formatXml(new XMLSerializer().serializeToString(svg));
   }
-  static snapshot(planInput: Plan) {
+  private snapshot(planInput: Plan) {
     const plan = planInput;
     return {
       name: plan.name,
@@ -322,12 +326,12 @@ export class SvgCodec {
     };
   }
 
-  static validateRoundTrip(input: string) {
-    const first = SvgCodec.decode(input);
-    const encoded = SvgCodec.encode(first);
-    const second = SvgCodec.decode(encoded);
-    const before = SvgCodec.snapshot(first);
-    const after = SvgCodec.snapshot(second);
+  public validateRoundTrip(input: string) {
+    const first = this.decode(input);
+    const encoded = this.encode(first);
+    const second = this.decode(encoded);
+    const before = this.snapshot(first);
+    const after = this.snapshot(second);
     const equal = JSON.stringify(before) === JSON.stringify(after);
     return { equal, before, after, encoded };
   }

@@ -20,7 +20,7 @@ import { ThreePreview } from './rendering/three-preview';
 import { YamlCodec } from './codecs/yaml';
 import { SvgCodec } from './codecs/svg';
 import { number } from './codecs/format';
-import { PlanService, ScenePlacement } from './model/plan-service';
+import { PlanService, PlanNormalizer, ScenePlacement } from './model/plan-service';
 import { GeometryTools, HitTester } from './model/geometry';
 
 import { h, render, Fragment } from 'preact';
@@ -85,7 +85,12 @@ interface Gesture {
   mode: 'drag' | 'pan';
 }
 function init() {
-  'use strict';
+  const normalizer = new PlanNormalizer();
+  const yamlCodec = new YamlCodec(normalizer);
+  const svgCodec = new SvgCodec(normalizer);
+  const scenePlacement = new ScenePlacement();
+  const geometryTools = new GeometryTools();
+  ('use strict');
   class EditorState {
     selectedWallId: string | null;
     selectedObjectName: string | null;
@@ -102,7 +107,7 @@ function init() {
       this.interactionPlan = null;
     }
   }
-  const planService = new PlanService({}, () => publishPersistentPlan());
+  const planService = new PlanService({}, () => publishPersistentPlan(), normalizer);
   const planSignal = signal(planService.snapshot());
   const interactionPlanSignal = signal<Plan | null>(null);
   const lightVisibleSignal = signal(false);
@@ -130,11 +135,11 @@ function init() {
   const resetWallToLoadedState = (wallName: string) => {
     const baseline = wallResetSnapshots.get(wallName);
     if (!baseline) {
-      UiFeedback.message(`No loaded state is available for ${wallName}.`);
+      uiFeedback.message(`No loaded state is available for ${wallName}.`);
       return;
     }
     if (!planService.resetWall(wallName, baseline)) {
-      UiFeedback.message(`Could not reset ${wallName}.`);
+      uiFeedback.message(`Could not reset ${wallName}.`);
       return;
     }
     wallResetSnapshots.delete(wallName);
@@ -145,24 +150,24 @@ function init() {
       baseline.name,
       baseline.objects.map((object) => structuredClone(object)),
     );
-    UiFeedback.message(`${baseline.name} reset.`);
+    uiFeedback.message(`${baseline.name} reset.`);
   };
   const resetObjectToLoadedState = (wallName: string, objectIndex: number) => {
     const baseline = objectResetSnapshots.get(wallName)?.[objectIndex];
     const object = planService.wall(wallName)?.objects[objectIndex];
     if (!baseline || !object) {
-      UiFeedback.message('No loaded state is available for this element.');
+      uiFeedback.message('No loaded state is available for this element.');
       return;
     }
     if (!planService.resetObject(wallName, objectIndex, baseline)) {
-      UiFeedback.message(`Could not reset ${object.name || 'element'}.`);
+      uiFeedback.message(`Could not reset ${object.name || 'element'}.`);
       return;
     }
     objectResetSnapshots.get(wallName)![objectIndex] = structuredClone(baseline);
-    UiFeedback.message(`${baseline.name || 'Element'} reset.`);
+    uiFeedback.message(`${baseline.name || 'Element'} reset.`);
   };
   class ViewController {
-    static updateViewMode() {
+    public updateViewMode() {
       const split = splitToggle.checked,
         showSource = sourceToggle.checked,
         showThree = threeToggle.checked;
@@ -180,25 +185,25 @@ function init() {
           : showThree
             ? '3D preview'
             : 'Preview';
-      requestAnimationFrame(ViewController.drawCanvas);
+      requestAnimationFrame(viewController.drawCanvas);
     }
-    static updateView() {
+    public updateView() {
       zoomLevel.textContent = Math.round(view.scale * 100) + '%';
-      ViewController.drawCanvas();
+      viewController.drawCanvas();
     }
-    static drawCanvasNow() {
+    public drawCanvasNow() {
       canvasRenderFrame = 0;
-      CanvasRenderer.paint(effectivePlan.value);
+      canvasRenderer.paint(effectivePlan.value);
     }
-    static drawCanvas() {
+    public drawCanvas() {
       renderScheduler.request();
     }
-    static zoomAt(factor: number, clientX: number, clientY: number) {
+    public zoomAt(factor: number, clientX: number, clientY: number) {
       viewport.zoomAt(clientX, clientY, factor);
     }
-    static fittedDrawingBox(paddingRatio = 0.04): ViewBox | null {
+    public fittedDrawingBox(paddingRatio = 0.04): ViewBox | null {
       const plan = effectivePlan.value;
-      const bounds = GeometryTools.planBounds(plan);
+      const bounds = geometryTools.planBounds(plan);
       if (!bounds) return null;
       const minY = plan.canvas.flipY - bounds.maxY,
         maxY = plan.canvas.flipY - bounds.minY;
@@ -208,13 +213,13 @@ function init() {
       const pad = Math.max(width, height) * paddingRatio;
       return [bounds.minX - pad, minY - pad, width + pad * 2, height + pad * 2];
     }
-    static fitView() {
+    public fitView() {
       view.scale = 1;
-      view.box = ViewController.fittedDrawingBox() || [...baseBox];
-      ViewController.updateView();
+      view.box = viewController.fittedDrawingBox() || [...baseBox];
+      viewController.updateView();
     }
-    static drawingBounds() {
-      const bounds = GeometryTools.planBounds(effectivePlan.value);
+    public drawingBounds() {
+      const bounds = geometryTools.planBounds(effectivePlan.value);
       return bounds
         ? {
             x: bounds.minX,
@@ -225,8 +230,9 @@ function init() {
         : null;
     }
   }
+  const viewController = new ViewController();
   class SourcePresentation {
-    static escapeHtml(value: string) {
+    private escapeHtml(value: string) {
       return value.replace(
         /[&<>"]/g,
         (c) =>
@@ -235,32 +241,32 @@ function init() {
           ],
       );
     }
-    static updateHighlight() {
+    public updateHighlight() {
       highlightCode.innerHTML =
         source.value
           .split('\n')
           .map((line) => {
             if (/^\s*#/.test(line))
               return (
-                '<span class="syntax-comment">' + SourcePresentation.escapeHtml(line) + '</span>'
+                '<span class="syntax-comment">' + sourcePresentation.escapeHtml(line) + '</span>'
               );
             const match = line.match(/^(\s*)([A-Za-z_][A-Za-z0-9_-]*)(\s*:\s*)(.*)$/);
-            if (!match) return SourcePresentation.escapeHtml(line);
+            if (!match) return sourcePresentation.escapeHtml(line);
             const scalar = match[4],
               hs =
                 scalar === '|' || scalar === '|-' || scalar === '|+'
                   ? '<span class="syntax-punctuation">' +
-                    SourcePresentation.escapeHtml(scalar) +
+                    sourcePresentation.escapeHtml(scalar) +
                     '</span>'
                   : '<span class="syntax-value">' +
-                    SourcePresentation.escapeHtml(scalar) +
+                    sourcePresentation.escapeHtml(scalar) +
                     '</span>';
             return (
-              SourcePresentation.escapeHtml(match[1]) +
+              sourcePresentation.escapeHtml(match[1]) +
               '<span class="syntax-attribute">' +
-              SourcePresentation.escapeHtml(match[2]) +
+              sourcePresentation.escapeHtml(match[2]) +
               '</span>' +
-              SourcePresentation.escapeHtml(match[3]) +
+              sourcePresentation.escapeHtml(match[3]) +
               hs
             );
           })
@@ -269,23 +275,25 @@ function init() {
       highlight.scrollLeft = source.scrollLeft;
     }
   }
+  const sourcePresentation = new SourcePresentation();
   class UiFeedback {
-    static timer: ReturnType<typeof setTimeout> | undefined;
-    static message(value: string) {
+    private timer: ReturnType<typeof setTimeout> | undefined;
+    public message(value: string) {
       status.textContent = value;
-      clearTimeout(UiFeedback.timer);
-      UiFeedback.timer = setTimeout(() => {
+      clearTimeout(uiFeedback.timer);
+      uiFeedback.timer = setTimeout(() => {
         status.textContent = '';
       }, 3500);
     }
   }
+  const uiFeedback = new UiFeedback();
   class TitleController {
-    static update() {
+    public update() {
       const name = planService.name;
       planTitle.textContent = name;
       document.title = `${name} · Canvas editor`;
     }
-    static downloadBaseName() {
+    public downloadBaseName() {
       const safe = planService.name
         .trim()
         .toLowerCase()
@@ -295,7 +303,7 @@ function init() {
         .replace(/^-+|-+$/g, '');
       return safe || 'tiling-plan';
     }
-    static beginEdit() {
+    public beginEdit() {
       if (document.getElementById('plan-title-input')) return;
       const input = document.createElement('input');
       input.id = 'plan-title-input';
@@ -314,7 +322,7 @@ function init() {
         if (commit) planService.setName(input.value);
         input.remove();
         planTitle.hidden = false;
-        TitleController.update();
+        titleController.update();
       };
       input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
@@ -328,14 +336,15 @@ function init() {
       input.addEventListener('blur', () => finish(true));
     }
   }
+  const titleController = new TitleController();
   const preview = getElement('preview');
   const stage = getElement('canvas-stage');
   const canvas = getElement('plan-canvas');
   const ctx = get2DContext(canvas);
   const showLabels = getElement('show-labels');
   const showDimensions = getElement('show-dimensions');
-  showLabels.addEventListener('change', ViewController.drawCanvas);
-  showDimensions.addEventListener('change', ViewController.drawCanvas);
+  showLabels.addEventListener('change', viewController.drawCanvas);
+  showDimensions.addEventListener('change', viewController.drawCanvas);
   const zoomLevel = getElement('zoom-level');
   const EMPTY_VIEW_BOX: ViewBox = [0, 0, 3000, 3000];
   let baseBox: ViewBox = [...EMPTY_VIEW_BOX];
@@ -712,7 +721,7 @@ function init() {
         onRename: (v) => planService.renamePattern(p.name, v),
         onRemove: () => {
           if (!planService.removePattern(p.name))
-            UiFeedback.message(`Pattern “${p.name}” is still used by a wall.`);
+            uiFeedback.message(`Pattern “${p.name}” is still used by a wall.`);
         },
         kind: 'tile pattern',
         reorder: ['pattern', index],
@@ -864,7 +873,7 @@ function init() {
     );
   }
   function PlacementControls({ wall, index }: { wall: Wall; index: number }) {
-    const placement = wall.placement3d || ScenePlacement.suggest(effectivePlan.value, wall, index);
+    const placement = wall.placement3d || scenePlacement.suggest(effectivePlan.value, wall, index);
     return h(
       Card,
       { title: '3D placement' },
@@ -1225,18 +1234,18 @@ function init() {
 
   const threeToggle = getElement('three-toggle');
   const threeContainer = getElement('preview-3d');
-  threeToggle.addEventListener('change', ViewController.updateViewMode);
+  threeToggle.addEventListener('change', viewController.updateViewMode);
   const sourceToggle = getElement('source-toggle');
   const splitToggle = getElement('split-toggle');
   const sourceView = getElement('source-view');
   const viewPanels = getElement('view-panels');
   sourceToggle.addEventListener('change', () => {
     if (sourceToggle.checked) splitToggle.checked = false;
-    ViewController.updateViewMode();
+    viewController.updateViewMode();
   });
   splitToggle.addEventListener('change', () => {
     if (splitToggle.checked) sourceToggle.checked = false;
-    ViewController.updateViewMode();
+    viewController.updateViewMode();
   });
   class CanvasViewport {
     minZoom: number;
@@ -1296,7 +1305,7 @@ function init() {
       this.onChange?.();
     }
   }
-  const viewport = new CanvasViewport(canvas, view, ViewController.updateView);
+  const viewport = new CanvasViewport(canvas, view, viewController.updateView);
   let canvasRenderToken = 0;
   let canvasRenderFrame = 0;
   class RenderScheduler {
@@ -1314,8 +1323,8 @@ function init() {
       });
     }
   }
-  const renderScheduler = new RenderScheduler(ViewController.drawCanvasNow);
-  new ResizeObserver(ViewController.drawCanvas).observe(stage);
+  const renderScheduler = new RenderScheduler(viewController.drawCanvasNow);
+  new ResizeObserver(viewController.drawCanvas).observe(stage);
   class Selection {
     constructor(
       public state: EditorState,
@@ -1404,7 +1413,7 @@ function init() {
       const hit = this.hitTester.hitTest(world);
       const target = this.resolveTarget(hit);
       const dragPlan = hit && target ? structuredClone(planSignal.value) : null;
-      const dragWall = hit ? PlanService.wallIn(dragPlan, hit.wallId) : null;
+      const dragWall = hit ? normalizer.wallIn(dragPlan, hit.wallId) : null;
       const dragObject =
         hit?.type === 'object'
           ? dragWall?.objects[hit.objectIndex] ||
@@ -1473,7 +1482,7 @@ function init() {
         if (hit.type === 'wall') {
           const nextX = Math.round(g.initial[0] + deltaX);
           const nextY = Math.round(g.initial[1] + deltaY);
-          const wall = PlanService.wallIn(nextPlan, hit.wallId);
+          const wall = normalizer.wallIn(nextPlan, hit.wallId);
           if (wall) {
             wall.x = nextX;
             wall.y = nextY;
@@ -1486,7 +1495,7 @@ function init() {
           const localY = deltaX * sin + deltaY * cos;
           const nextX = Math.round(g.initial[0] + localX);
           const nextY = Math.round(g.initial[1] + localY);
-          const wall = PlanService.wallIn(nextPlan, hit.wallId);
+          const wall = normalizer.wallIn(nextPlan, hit.wallId);
           const object =
             wall?.objects[hit.objectIndex] ||
             wall?.objects.find((candidate) => candidate.name === hit.objectName);
@@ -1495,7 +1504,7 @@ function init() {
           const height = object?.height || 0;
           if (
             object &&
-            GeometryTools.rectangleInsidePolygon(nextX, nextY, width, height, outline)
+            geometryTools.rectangleInsidePolygon(nextX, nextY, width, height, outline)
           ) {
             object.x = nextX;
             object.y = nextY;
@@ -1527,7 +1536,7 @@ function init() {
         this.selection.select(g.hit);
       } else if (g.mode === 'drag' && g.hit) {
         const hit = g.hit;
-        const wall = PlanService.wallIn(interactionPlanSignal.value, hit.wallId);
+        const wall = normalizer.wallIn(interactionPlanSignal.value, hit.wallId);
         const object =
           hit.type === 'object'
             ? wall?.objects[hit.objectIndex] ||
@@ -1576,7 +1585,7 @@ function init() {
   }
 
   const hitTester = new HitTester(() => effectivePlan.value);
-  const selection = new Selection(editorState, ViewController.drawCanvas);
+  const selection = new Selection(editorState, viewController.drawCanvas);
   const pointerController = new PointerController(
     preview,
     viewport,
@@ -1586,17 +1595,17 @@ function init() {
   );
   preview.addEventListener('dblclick', (event) => {
     if (!(event.target instanceof Element && event.target.closest('.zoom-controls')))
-      ViewController.fitView();
+      viewController.fitView();
   });
   getElement('zoom-in').addEventListener('click', () => {
     const rect = preview.getBoundingClientRect();
-    ViewController.zoomAt(1.25, rect.left + rect.width / 2, rect.top + rect.height / 2);
+    viewController.zoomAt(1.25, rect.left + rect.width / 2, rect.top + rect.height / 2);
   });
   getElement('zoom-out').addEventListener('click', () => {
     const rect = preview.getBoundingClientRect();
-    ViewController.zoomAt(0.8, rect.left + rect.width / 2, rect.top + rect.height / 2);
+    viewController.zoomAt(0.8, rect.left + rect.width / 2, rect.top + rect.height / 2);
   });
-  getElement('zoom-fit').addEventListener('click', ViewController.fitView);
+  getElement('zoom-fit').addEventListener('click', viewController.fitView);
   let resetSnapshot = planService.snapshot();
   baseBox =
     planService.data.canvas.width > 0 && planService.data.canvas.height > 0
@@ -1614,12 +1623,12 @@ function init() {
     highlight.scrollLeft = source.scrollLeft;
   });
   const paintSurfacePattern = createPatternPainter(() => {
-    ViewController.drawCanvas();
+    viewController.drawCanvas();
     threePreview.textureRevision++;
     threePreview.request();
   });
   class CanvasRenderer {
-    static paint(planInput: Plan) {
+    public paint(planInput: Plan) {
       const plan = planInput;
       const rect = stage.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
@@ -1828,7 +1837,7 @@ function init() {
     }
 
     render() {
-      ViewController.drawCanvas();
+      viewController.drawCanvas();
       zoomLevel.textContent = Math.round(view.scale * 100) + '%';
     }
   }
@@ -1836,13 +1845,13 @@ function init() {
   class YamlSourceEditor {
     syncFromPlan(plan = effectivePlan.value) {
       if (yamlEditingSignal.value) return;
-      source.value = YamlCodec.encode(plan);
-      SourcePresentation.updateHighlight();
+      source.value = yamlCodec.encode(plan);
+      sourcePresentation.updateHighlight();
     }
 
     apply() {
       try {
-        const plan = YamlCodec.decode(source.value);
+        const plan = yamlCodec.decode(source.value);
         app.replaceDocument(plan, {
           change: { type: 'source-apply' },
           establishResetPoint: false,
@@ -1896,8 +1905,8 @@ function init() {
           : [...EMPTY_VIEW_BOX];
       view.box = [...baseBox];
       view.scale = 1;
-      TitleController.update();
-      if (fitView) ViewController.fitView();
+      titleController.update();
+      if (fitView) viewController.fitView();
     }
 
     loadUploadedPlan(file: File | undefined) {
@@ -1913,7 +1922,7 @@ function init() {
             name.endsWith('.yml') ||
             /yaml/i.test(file.type) ||
             (!name.endsWith('.svg') && /^\s*format\s*:\s*tiling-plan\b/m.test(text));
-          let plan = isYaml ? YamlCodec.decode(text) : SvgCodec.decode(text);
+          let plan = isYaml ? yamlCodec.decode(text) : svgCodec.decode(text);
           const fileBase = file.name.replace(/\.(?:svg|ya?ml)$/i, '').trim();
           if (!plan.name || plan.name === 'Tiling plan') plan.name = fileBase || 'Tiling plan';
           this.replaceDocument(plan, {
@@ -1923,10 +1932,10 @@ function init() {
           });
           sourceStatus.textContent = `Uploaded ${isYaml ? 'YAML' : 'SVG'} loaded as YAML source.`;
           sourceStatus.classList.remove('error');
-          UiFeedback.message(`${file.name} loaded.`);
+          uiFeedback.message(`${file.name} loaded.`);
           ActionConsole.log(`Loaded “${file.name}” (${isYaml ? 'YAML' : 'SVG'}).`);
         } catch (error) {
-          UiFeedback.message(
+          uiFeedback.message(
             'Invalid plan: ' + (error instanceof Error ? error.message : String(error)),
           );
           ActionConsole.log(
@@ -2108,7 +2117,7 @@ function init() {
   loadTemplateButton.addEventListener('click', () => {
     ActionConsole.log('Loading template…');
     try {
-      const plan = YamlCodec.decode(baseModelYaml);
+      const plan = yamlCodec.decode(baseModelYaml);
       app.replaceDocument(plan, {
         change: { type: 'template' },
         establishResetPoint: true,
@@ -2116,10 +2125,10 @@ function init() {
       });
       sourceStatus.textContent = 'Template loaded.';
       sourceStatus.classList.remove('error');
-      UiFeedback.message('Template loaded.');
+      uiFeedback.message('Template loaded.');
       ActionConsole.log('Template loaded.');
     } catch (error) {
-      UiFeedback.message(
+      uiFeedback.message(
         'Could not load template: ' + (error instanceof Error ? error.message : String(error)),
       );
       ActionConsole.log(
@@ -2148,12 +2157,12 @@ function init() {
         /yaml/i.test(file.type),
     );
     if (file) app.loadUploadedPlan(file);
-    else UiFeedback.message('Choose an SVG, YAML, or YML plan file.');
+    else uiFeedback.message('Choose an SVG, YAML, or YML plan file.');
   });
 
   source.addEventListener('input', () => {
     yamlEditingSignal.value = true;
-    SourcePresentation.updateHighlight();
+    sourcePresentation.updateHighlight();
     sourceStatus.textContent = 'Unapplied YAML changes.';
     sourceStatus.classList.remove('error');
   });
@@ -2174,7 +2183,7 @@ function init() {
       let index = 1;
       while (planService.data.walls.some((wall) => wall.name === `wall-${index}`)) index++;
       const id = `wall-${index}`;
-      const bounds = GeometryTools.planBounds(planService.data);
+      const bounds = geometryTools.planBounds(planService.data);
       const x = Math.ceil((bounds ? bounds.maxX : 0) + 100);
       const y = planService.data.walls.length ? planService.data.walls[0].y : 0;
       const pattern = planService.data.patterns.length ? planService.data.patterns[0].name : '';
@@ -2198,10 +2207,10 @@ function init() {
           strokeWidth: 1,
         },
       });
-      ViewController.fitView();
-      UiFeedback.message(`${id} added.`);
+      viewController.fitView();
+      uiFeedback.message(`${id} added.`);
     } catch (error) {
-      UiFeedback.message(
+      uiFeedback.message(
         'Could not add wall: ' +
           (error && (error instanceof Error ? error.message : String(error))
             ? error instanceof Error
@@ -2209,18 +2218,18 @@ function init() {
               : String(error)
             : String(error)),
       );
-      ViewController.drawCanvas();
+      viewController.drawCanvas();
     }
   };
   addWallButton.addEventListener('click', addWallFromControls);
 
   const planTitle = getElement('plan-title');
   const editPlanTitle = getElement('edit-plan-title');
-  editPlanTitle.addEventListener('click', TitleController.beginEdit);
+  editPlanTitle.addEventListener('click', titleController.beginEdit);
   planService.onEvent((change) => {
-    if (change && change.type === 'name-change') TitleController.update();
+    if (change && change.type === 'name-change') titleController.update();
   });
-  TitleController.update();
+  titleController.update();
 
   initializeDocumentation();
 
@@ -2232,58 +2241,58 @@ function init() {
     });
     sourceStatus.textContent = 'Plan reset.';
     sourceStatus.classList.remove('error');
-    UiFeedback.message('Plan reset.');
+    uiFeedback.message('Plan reset.');
   });
   getElement('copy').addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(source.value);
-      UiFeedback.message('YAML source copied.');
+      uiFeedback.message('YAML source copied.');
     } catch {
-      UiFeedback.message('Clipboard unavailable. Select the source and copy it manually.');
+      uiFeedback.message('Clipboard unavailable. Select the source and copy it manually.');
     }
   });
   getElement('download-yaml').addEventListener('click', () => {
-    const blob = new Blob([YamlCodec.encode(planService.snapshot())], {
+    const blob = new Blob([yamlCodec.encode(planService.snapshot())], {
       type: 'text/yaml;charset=utf-8',
     });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${TitleController.downloadBaseName()}.yaml`;
+    link.download = `${titleController.downloadBaseName()}.yaml`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    UiFeedback.message('YAML downloaded.');
+    uiFeedback.message('YAML downloaded.');
   });
   getElement('download').addEventListener('click', () => {
-    const blob = new Blob([SvgCodec.encode(planService.snapshot())], {
+    const blob = new Blob([svgCodec.encode(planService.snapshot())], {
       type: 'image/svg+xml;charset=utf-8',
     });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${TitleController.downloadBaseName()}.svg`;
+    link.download = `${titleController.downloadBaseName()}.svg`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    UiFeedback.message('SVG downloaded.');
+    uiFeedback.message('SVG downloaded.');
   });
   getElement('download-png').addEventListener('click', () => {
-    ViewController.drawCanvasNow();
+    viewController.drawCanvasNow();
     canvas.toBlob((blob) => {
       if (!blob) {
-        UiFeedback.message('Could not create PNG.');
+        uiFeedback.message('Could not create PNG.');
         return;
       }
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${TitleController.downloadBaseName()}.png`;
+      link.download = `${titleController.downloadBaseName()}.png`;
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      UiFeedback.message('PNG downloaded.');
+      uiFeedback.message('PNG downloaded.');
     }, 'image/png');
   });
   publishPersistentPlan();
-  ViewController.updateView();
+  viewController.updateView();
 }
 
 init();

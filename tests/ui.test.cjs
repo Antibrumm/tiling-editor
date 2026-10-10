@@ -28,7 +28,7 @@ function instrument(node) {
     assert(publication, 'Editor exposes the initial model publication');
     edits.push({
       position: publication.getStart(syntax),
-      text: 'window.editorTest={threePreview,planService,selection,effectivePlan,yamlEditingSignal,YamlCodec,SvgCodec};\n',
+      text: 'window.editorTest={threePreview,planService,selection,effectivePlan,yamlEditingSignal,yamlCodec,svgCodec};\n',
     });
   }
   ts.forEachChild(node, instrument);
@@ -236,7 +236,7 @@ const wait = () => new Promise((r) => setTimeout(r, 160));
   assert.equal(firstLight.light.intensity, 2.5);
   assert(document.getElementById('source').value.includes('color: "#8040ff"'));
   const snapshot = test.planService.snapshot();
-  for (const codec of [test.YamlCodec, test.SvgCodec])
+  for (const codec of [test.yamlCodec, test.svgCodec])
     assert.deepStrictEqual(
       JSON.parse(JSON.stringify(codec.decode(codec.encode(snapshot)).lights3d)),
       JSON.parse(JSON.stringify(snapshot.lights3d)),

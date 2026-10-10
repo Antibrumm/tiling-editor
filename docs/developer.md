@@ -2,6 +2,8 @@
 
 The editor is a TypeScript browser application built with Vite. `PlanService` owns the authoritative normalized plan data and emits semantic change events. `EditorState` contains transient UI state. `CanvasViewport`, `CanvasRenderer`, and `HitTester` handle viewport conversion, Canvas 2D rendering, and plan-space picking. `ControlPanelView` renders the sidebar with Preact. Signals expose the effective persistent or transient plan to both preview renderers and YAML. `YamlCodec` and `SvgCodec` are serialization boundaries, while `EditorApp` coordinates document lifecycle and model changes.
 
+Services and utilities use initialized classes with public instance methods. `PlanNormalizer` handles input normalization and is injected into `PlanService`, `YamlCodec`, and `SvgCodec`. The editor initializes its codecs, geometry helpers, placement helper, and UI controllers once per editor. `ThreePreview` owns its placement and layering helpers. Internal codec helpers remain private.
+
 ## Plan data
 
 The runtime model is plain JavaScript data. A plan contains a name, units, patterns, and walls. Walls contain position, rotation, an outline, and optionally objects. Objects are wall-local rectangles. Pattern dimensions are derived from `tileWidth + borderSize` and `tileHeight + borderSize`.

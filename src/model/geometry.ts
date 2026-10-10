@@ -1,7 +1,7 @@
 import type { Plan, Wall, Position, SelectionHit } from './types';
 
 export class GeometryTools {
-  static planBounds(planInput: Plan) {
+  public planBounds(planInput: Plan) {
     const plan = planInput;
     let minX = Infinity,
       minY = Infinity,
@@ -42,7 +42,7 @@ export class GeometryTools {
     }
     return [minX, minY, maxX, maxY].every(Number.isFinite) ? { minX, minY, maxX, maxY } : null;
   }
-  static worldToLocal(point: Position, transform: { x: number; y: number; rotation?: number }) {
+  public worldToLocal(point: Position, transform: { x: number; y: number; rotation?: number }) {
     const dx = point.x - (transform.x || 0);
     const dy = point.y - (transform.y || 0);
     const angle = (-(transform.rotation || 0) * Math.PI) / 180;
@@ -53,7 +53,7 @@ export class GeometryTools {
       y: dx * sin + dy * cos,
     };
   }
-  static pointInPolygon(p: Position, pts: Position[]) {
+  public pointInPolygon(p: Position, pts: Position[]) {
     let inside = false;
     for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
       const a = pts[i],
@@ -63,7 +63,7 @@ export class GeometryTools {
     }
     return inside;
   }
-  static pointOnSegment(p: Position, a: Position, b: Position, epsilon = 1e-7) {
+  public pointOnSegment(p: Position, a: Position, b: Position, epsilon = 1e-7) {
     const cross = (p.x - a.x) * (b.y - a.y) - (p.y - a.y) * (b.x - a.x);
     if (Math.abs(cross) > epsilon) return false;
     return (
@@ -73,13 +73,13 @@ export class GeometryTools {
       p.y <= Math.max(a.y, b.y) + epsilon
     );
   }
-  static pointInPolygonInclusive(p: Position, pts: Position[]) {
+  public pointInPolygonInclusive(p: Position, pts: Position[]) {
     for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
-      if (GeometryTools.pointOnSegment(p, pts[j], pts[i])) return true;
+      if (this.pointOnSegment(p, pts[j], pts[i])) return true;
     }
-    return GeometryTools.pointInPolygon(p, pts);
+    return this.pointInPolygon(p, pts);
   }
-  static segmentsProperlyIntersect(
+  public segmentsProperlyIntersect(
     a: Position,
     b: Position,
     c: Position,
@@ -97,7 +97,7 @@ export class GeometryTools {
       ((o3 > epsilon && o4 < -epsilon) || (o3 < -epsilon && o4 > epsilon))
     );
   }
-  static rectangleInsidePolygon(
+  public rectangleInsidePolygon(
     x: number,
     y: number,
     width: number,
@@ -111,13 +111,12 @@ export class GeometryTools {
       { x: x + width, y: y + height },
       { x, y: y + height },
     ];
-    if (!corners.every((point) => GeometryTools.pointInPolygonInclusive(point, polygon)))
-      return false;
+    if (!corners.every((point) => this.pointInPolygonInclusive(point, polygon))) return false;
     const rectEdges = corners.map((point, index) => [point, corners[(index + 1) % corners.length]]);
     for (let i = 0; i < polygon.length; i++) {
       const edge = [polygon[i], polygon[(i + 1) % polygon.length]];
       for (const rectEdge of rectEdges) {
-        if (GeometryTools.segmentsProperlyIntersect(rectEdge[0], rectEdge[1], edge[0], edge[1]))
+        if (this.segmentsProperlyIntersect(rectEdge[0], rectEdge[1], edge[0], edge[1]))
           return false;
       }
     }
@@ -126,7 +125,10 @@ export class GeometryTools {
 }
 
 export class HitTester {
-  constructor(private planProvider: Plan | (() => Plan)) {}
+  constructor(
+    private planProvider: Plan | (() => Plan),
+    private geometry = new GeometryTools(),
+  ) {}
   hitTest(worldPoint: Position): SelectionHit | null {
     const supplied =
       typeof this.planProvider === 'function' ? this.planProvider() : this.planProvider;
@@ -134,7 +136,7 @@ export class HitTester {
     const flipY = Number(plan.canvas.flipY || 0);
     const planPoint = { x: worldPoint.x, y: flipY - worldPoint.y };
     for (const wall of [...plan.walls].reverse()) {
-      const local = GeometryTools.worldToLocal(planPoint, wall);
+      const local = this.geometry.worldToLocal(planPoint, wall);
       for (let objectIndex = wall.objects.length - 1; objectIndex >= 0; objectIndex--) {
         const object = wall.objects[objectIndex];
         const objectHit =
@@ -147,7 +149,7 @@ export class HitTester {
         }
       }
       const outline = wall.outline.points.map(([x, y]) => ({ x, y }));
-      const wallHit = outline.length >= 3 && GeometryTools.pointInPolygon(local, outline);
+      const wallHit = outline.length >= 3 && this.geometry.pointInPolygon(local, outline);
       if (wallHit) {
         return { type: 'wall', wallId: wall.name };
       }

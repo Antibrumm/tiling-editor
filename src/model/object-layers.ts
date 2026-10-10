@@ -1,7 +1,7 @@
 import type { PlanObject } from './types';
 
 export class ObjectLayers {
-  static offsets(objects: PlanObject[]) {
+  public offsets(objects: PlanObject[]) {
     const offsets = new Map<number, number>(),
       placed: { object: PlanObject; front: number }[] = [];
     // Larger rectangles are containers. Area ordering handles nested

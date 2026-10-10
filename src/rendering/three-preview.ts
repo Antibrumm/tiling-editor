@@ -32,6 +32,8 @@ interface LightEntry {
 }
 
 export class ThreePreview {
+  private placement = new ScenePlacement();
+  private objectLayers = new ObjectLayers();
   container: HTMLElement;
   entries = new Map<string, SurfaceEntry>();
   lights = new Map<string, LightEntry>();
@@ -274,7 +276,7 @@ export class ThreePreview {
     );
     edges.position.z = 0.002;
     surface.add(edges);
-    const offsets = ObjectLayers.offsets(wall.objects);
+    const offsets = this.objectLayers.offsets(wall.objects);
     wall.objects.forEach((o, index) => {
       if (!(o.width > 0 && o.height > 0)) return;
       const box = new THREE.Mesh(
@@ -366,7 +368,7 @@ export class ThreePreview {
         entry.signature = signature;
         this.entries.set(wall.name, entry);
       }
-      const p = ScenePlacement.effective(plan, wall, index);
+      const p = this.placement.effective(plan, wall, index);
       entry.group.position.set(p.x / 1000, p.y / 1000, p.z / 1000);
       entry.group.rotation.z = (p.yaw * Math.PI) / 180;
       // Floors lie directly on XY. Wall-local height becomes world Z.

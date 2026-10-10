@@ -1,4 +1,4 @@
-import { PlanService } from '../model/plan-service';
+import { PlanNormalizer } from '../model/plan-service';
 import type { Plan, PlanInput } from '../model/types';
 import { number } from './format';
 // Parser records stay untyped until normalization coerces the supported fields.
@@ -18,16 +18,17 @@ interface ParsedPlan {
 }
 
 export class YamlCodec {
-  static scalar(value: unknown) {
+  constructor(private normalizer = new PlanNormalizer()) {}
+  private scalar(value: unknown) {
     const t = String(value ?? '');
     return /^[A-Za-z_][A-Za-z0-9_.-]*$/.test(t) ? t : JSON.stringify(t);
   }
-  static encode(planInput: Plan) {
+  public encode(planInput: Plan) {
     const plan = planInput;
     const lines = [
       'format: tiling-plan',
       'upAxis3d: z',
-      `name: ${YamlCodec.scalar(plan.name)}`,
+      `name: ${this.scalar(plan.name)}`,
       'patterns:',
     ];
     lines.splice(
@@ -35,7 +36,7 @@ export class YamlCodec {
       0,
       plan.lights3d.length ? 'lights3d:' : 'lights3d: []',
       ...plan.lights3d.flatMap((light) => [
-        '  - id: ' + YamlCodec.scalar(light.id),
+        '  - id: ' + this.scalar(light.id),
         ...Object.entries(light)
           .filter(([key]) => key !== 'id')
           .map(
@@ -43,25 +44,25 @@ export class YamlCodec {
               '    ' +
               key +
               ': ' +
-              (typeof value === 'string' ? YamlCodec.scalar(value) : number(value)),
+              (typeof value === 'string' ? this.scalar(value) : number(value)),
           ),
       ]),
     );
     for (const p of plan.patterns)
       lines.push(
-        `  - name: ${YamlCodec.scalar(p.name)}`,
+        `  - name: ${this.scalar(p.name)}`,
         `    tileWidth: ${number(p.tileWidth)}`,
         `    tileHeight: ${number(p.tileHeight)}`,
         `    borderSize: ${number(p.borderSize)}`,
-        `    tileColor: ${YamlCodec.scalar(p.tileColor)}`,
-        `    borderColor: ${YamlCodec.scalar(p.borderColor)}`,
-        `    tileTexture: ${YamlCodec.scalar(p.tileTexture || '')}`,
+        `    tileColor: ${this.scalar(p.tileColor)}`,
+        `    borderColor: ${this.scalar(p.borderColor)}`,
+        `    tileTexture: ${this.scalar(p.tileTexture || '')}`,
         `    randomTextureRotation: ${p.randomTextureRotation ? 'true' : 'false'}`,
       );
     lines.push('walls:');
     for (const w of plan.walls) {
       lines.push(
-        `  - name: ${YamlCodec.scalar(w.name)}`,
+        `  - name: ${this.scalar(w.name)}`,
         `    x: ${number(w.x)}`,
         `    y: ${number(w.y)}`,
         `    rotation: ${number(w.rotation)}`,
@@ -78,13 +79,13 @@ export class YamlCodec {
               '      ' +
               key +
               ': ' +
-              (typeof value === 'string' ? YamlCodec.scalar(value) : number(value)),
+              (typeof value === 'string' ? this.scalar(value) : number(value)),
           ),
         );
       }
       if (w.outline.pattern)
         lines.push(
-          `      pattern: ${YamlCodec.scalar(w.outline.pattern)}`,
+          `      pattern: ${this.scalar(w.outline.pattern)}`,
           `      patternX: ${number(w.outline.patternX)}`,
           `      patternY: ${number(w.outline.patternY)}`,
           `      patternRotation: ${number(w.outline.patternRotation || 0)}`,
@@ -97,7 +98,7 @@ export class YamlCodec {
             `        y: ${number(r.y)}`,
             `        width: ${number(r.width)}`,
             `        height: ${number(r.height)}`,
-            `        pattern: ${YamlCodec.scalar(r.pattern)}`,
+            `        pattern: ${this.scalar(r.pattern)}`,
             `        patternX: ${number(r.patternX)}`,
             `        patternY: ${number(r.patternY)}`,
             `        patternRotation: ${number(r.patternRotation || 0)}`,
@@ -107,19 +108,19 @@ export class YamlCodec {
         lines.push('    objects:');
         for (const o of w.objects)
           lines.push(
-            `      - name: ${YamlCodec.scalar(o.name || 'element')}`,
+            `      - name: ${this.scalar(o.name || 'element')}`,
             `        x: ${number(o.x)}`,
             `        y: ${number(o.y)}`,
             `        width: ${number(o.width)}`,
             `        height: ${number(o.height)}`,
-            `        fill: ${YamlCodec.scalar(o.fill || 'red')}`,
+            `        fill: ${this.scalar(o.fill || 'red')}`,
             `        depth: ${number(o.depth || 10)}`,
           );
       }
     }
     return lines.join('\n');
   }
-  static parseScalar(raw: string): unknown {
+  private parseScalar(raw: string): unknown {
     const v = raw.trim();
     if (!v) return '';
     if (v.startsWith('"') && v.endsWith('"')) {
@@ -134,7 +135,7 @@ export class YamlCodec {
     if (v === 'null') return null;
     return v;
   }
-  static decode(text: string): Plan {
+  public decode(text: string): Plan {
     const lines = String(text || '')
       .replace(/\r\n?/g, '\n')
       .split('\n');
@@ -156,7 +157,7 @@ export class YamlCodec {
           item = null;
           sub = '';
           if (k === 'lights3d') raw.lights3d = [];
-        } else raw[k] = YamlCodec.parseScalar(v);
+        } else raw[k] = this.parseScalar(v);
         continue;
       }
       if (section === 'lights3d') {
@@ -164,17 +165,17 @@ export class YamlCodec {
           item = {};
           raw.lights3d!.push(item);
           const m = t.slice(2).match(/^([^:]+):\s*(.*)$/);
-          if (m) item[m[1]] = YamlCodec.parseScalar(m[2]);
+          if (m) item[m[1]] = this.parseScalar(m[2]);
         } else {
           const m = t.match(/^([^:]+):\s*(.*)$/);
-          if (m && item) item[m[1]] = YamlCodec.parseScalar(m[2]);
+          if (m && item) item[m[1]] = this.parseScalar(m[2]);
         }
         continue;
       }
       if (section === 'light3d') {
         raw.light3d ||= {};
         const m = t.match(/^([^:]+):\s*(.*)$/);
-        if (m) raw.light3d[m[1]] = YamlCodec.parseScalar(m[2]);
+        if (m) raw.light3d[m[1]] = this.parseScalar(m[2]);
         continue;
       }
       if (section === 'canvas') continue;
@@ -183,10 +184,10 @@ export class YamlCodec {
           item = {};
           raw.patterns.push(item);
           const m = t.slice(2).match(/^([^:]+):\s*(.*)$/);
-          if (m) item[m[1]] = YamlCodec.parseScalar(m[2]);
+          if (m) item[m[1]] = this.parseScalar(m[2]);
         } else {
           const m = t.match(/^([^:]+):\s*(.*)$/);
-          if (m && item) item[m[1]] = YamlCodec.parseScalar(m[2]);
+          if (m && item) item[m[1]] = this.parseScalar(m[2]);
         }
         continue;
       }
@@ -196,7 +197,7 @@ export class YamlCodec {
           raw.walls.push(item);
           sub = '';
           const m = t.slice(2).match(/^([^:]+):\s*(.*)$/);
-          if (m) item[m[1]] = YamlCodec.parseScalar(m[2]);
+          if (m) item[m[1]] = this.parseScalar(m[2]);
           continue;
         }
         if (!item) continue;
@@ -220,44 +221,42 @@ export class YamlCodec {
         }
         if (indent === 4) {
           const m = t.match(/^([^:]+):\s*(.*)$/);
-          if (m) item[m[1]] = YamlCodec.parseScalar(m[2]);
+          if (m) item[m[1]] = this.parseScalar(m[2]);
           continue;
         }
         if (sub === 'placement3d' && indent >= 6) {
           const m = t.match(/^([^:]+):\s*(.*)$/);
-          if (m) item.placement3d![m[1]] = YamlCodec.parseScalar(m[2]);
+          if (m) item.placement3d![m[1]] = this.parseScalar(m[2]);
           continue;
         }
         if (sub === 'outline' && indent >= 6) {
           const m = t.match(/^([^:]+):\s*(.*)$/);
-          if (m) item.outline![m[1]] = YamlCodec.parseScalar(m[2]);
+          if (m) item.outline![m[1]] = this.parseScalar(m[2]);
           continue;
         }
         if (sub === 'patternRegions' && indent === 6 && t.startsWith('- ')) {
           const r: Record<string, unknown> = {};
           item.patternRegions!.push(r);
           const m = t.slice(2).match(/^([^:]+):\s*(.*)$/);
-          if (m) r[m[1]] = YamlCodec.parseScalar(m[2]);
+          if (m) r[m[1]] = this.parseScalar(m[2]);
           continue;
         }
         if (sub === 'patternRegions' && indent >= 8 && item.patternRegions!.length) {
           const m = t.match(/^([^:]+):\s*(.*)$/);
           if (m)
-            item.patternRegions![item.patternRegions!.length - 1][m[1]] = YamlCodec.parseScalar(
-              m[2],
-            );
+            item.patternRegions![item.patternRegions!.length - 1][m[1]] = this.parseScalar(m[2]);
           continue;
         }
         if (sub === 'objects' && indent === 6 && t.startsWith('- ')) {
           const o: Record<string, unknown> = {};
           item.objects!.push(o);
           const m = t.slice(2).match(/^([^:]+):\s*(.*)$/);
-          if (m) o[m[1]] = YamlCodec.parseScalar(m[2]);
+          if (m) o[m[1]] = this.parseScalar(m[2]);
           continue;
         }
         if (sub === 'objects' && indent >= 8 && item.objects!.length) {
           const m = t.match(/^([^:]+):\s*(.*)$/);
-          if (m) item.objects![item.objects!.length - 1][m[1]] = YamlCodec.parseScalar(m[2]);
+          if (m) item.objects![item.objects!.length - 1][m[1]] = this.parseScalar(m[2]);
         }
       }
     }
@@ -272,6 +271,6 @@ export class YamlCodec {
             .filter((p) => p.length === 2 && p.every(Number.isFinite))
         : [];
     }
-    return PlanService.normalizeData(raw as unknown as PlanInput);
+    return this.normalizer.normalizeData(raw as unknown as PlanInput);
   }
 }

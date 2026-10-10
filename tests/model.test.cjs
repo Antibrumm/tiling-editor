@@ -29,6 +29,9 @@ Object.assign(
   loadModule('src/model/object-layers.ts'),
   loadModule('src/codecs/yaml.ts'),
 );
+context.yamlCodec = new context.YamlCodec();
+context.scenePlacement = new context.ScenePlacement();
+context.objectLayers = new context.ObjectLayers();
 // Extracted services must publish independently, without editor globals.
 let publications = 0;
 const independent = new context.PlanService({}, () => publications++);
@@ -81,7 +84,7 @@ const service = new context.PlanService({
 context.planService = service;
 assert.equal(service.data.walls[0].placement3d, null);
 assert.equal(
-  context.ScenePlacement.effective(service.data, service.data.walls[0], 0).type,
+  context.scenePlacement.effective(service.data, service.data.walls[0], 0).type,
   'floor',
 );
 service.setPlacement3d('floor', 'x', 123);
@@ -143,7 +146,7 @@ service.setLightValue(secondLight, 'aimY', -250);
 service.setLightValue(secondLight, 'aimZ', 900);
 assert.notEqual(firstLight, secondLight);
 assert.equal(service.data.lights3d[0].aimZ, 0);
-const migrated = context.YamlCodec.decode(
+const migrated = context.yamlCodec.decode(
   'light3d:\n  x: 1200\n  y: -300\n  z: 4500\nwalls:\n  - name: floor\n    outline:\n      points: "0,0 100,0 100,100"',
 );
 assert.equal(migrated.lights3d.length, 1);
@@ -153,7 +156,7 @@ const duplicated = new context.PlanService({
   lights3d: [{ id: 'same' }, { id: 'same' }, { id: 'same-2' }],
 });
 assert.equal(new Set(duplicated.data.lights3d.map((light) => light.id)).size, 3);
-const decoded = context.YamlCodec.decode(context.YamlCodec.encode(service.snapshot()));
+const decoded = context.yamlCodec.decode(context.yamlCodec.encode(service.snapshot()));
 assert.deepStrictEqual(
   JSON.parse(JSON.stringify(decoded)),
   JSON.parse(JSON.stringify(service.snapshot())),
@@ -208,7 +211,7 @@ service.removeLight(firstLight);
 preview.update(service.snapshot());
 assert.equal(preview.lights.size, 0);
 assert.equal(
-  context.YamlCodec.decode(context.YamlCodec.encode(service.snapshot())).lights3d.length,
+  context.yamlCodec.decode(context.yamlCodec.encode(service.snapshot())).lights3d.length,
   0,
 );
 const floor = preview.entries.get('floor');
@@ -242,7 +245,7 @@ service.removeWall('back');
 preview.update(service.snapshot());
 assert.equal(preview.entries.size, 1, 'Removed surfaces are disposed');
 const templateSource = fs.readFileSync('src/assets/base-model.yaml', 'utf8');
-const template = context.YamlCodec.decode(templateSource);
+const template = context.yamlCodec.decode(templateSource);
 preview.update(template);
 preview.scene.updateMatrixWorld(true);
 const inward = {

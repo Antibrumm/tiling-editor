@@ -20,44 +20,31 @@ function isKey<T extends string>(key: string, keys: readonly T[]): key is T {
   return keys.includes(key as T);
 }
 
-export class PlanService {
-  data: Plan;
-  listeners = new Set<(change: PlanChange) => void>();
-  constructor(
-    data: PlanInput = {},
-    private publish: () => void = () => {},
-  ) {
-    this.data = PlanService.normalizeData(data);
-  }
-  static finite(value: unknown, fallback = 0) {
+export class PlanNormalizer {
+  constructor(private placement = new ScenePlacement()) {}
+  public finite(value: unknown, fallback = 0) {
     const number = Number(value);
     return Number.isFinite(number) ? number : fallback;
   }
-  static normalizeCanvas(canvas: Input<CanvasBounds> = {}): CanvasBounds {
+  public normalizeCanvas(canvas: Input<CanvasBounds> = {}): CanvasBounds {
     return {
-      x: PlanService.finite(canvas.x),
-      y: PlanService.finite(canvas.y),
-      width: PlanService.finite(canvas.width),
-      height: PlanService.finite(canvas.height),
-      flipY: PlanService.finite(
-        canvas.flipY,
-        PlanService.finite(canvas.y) + PlanService.finite(canvas.height),
-      ),
+      x: this.finite(canvas.x),
+      y: this.finite(canvas.y),
+      width: this.finite(canvas.width),
+      height: this.finite(canvas.height),
+      flipY: this.finite(canvas.flipY, this.finite(canvas.y) + this.finite(canvas.height)),
     };
   }
-  static normalizePattern(pattern: PatternInput = {}): Pattern {
+  public normalizePattern(pattern: PatternInput = {}): Pattern {
     return {
       name: String(pattern.name ?? ''),
-      tileWidth: PlanService.finite(pattern.tileWidth),
-      tileHeight: PlanService.finite(pattern.tileHeight),
+      tileWidth: this.finite(pattern.tileWidth),
+      tileHeight: this.finite(pattern.tileHeight),
       borderSize: Math.max(
         0,
-        PlanService.finite(
+        this.finite(
           pattern.borderSize,
-          Math.max(
-            0,
-            PlanService.finite(pattern.patternWidth) - PlanService.finite(pattern.tileWidth),
-          ),
+          Math.max(0, this.finite(pattern.patternWidth) - this.finite(pattern.tileWidth)),
         ),
       ),
       tileColor: String(pattern.tileColor ?? pattern.fill ?? '#ffffff'),
@@ -68,35 +55,35 @@ export class PlanService {
         String(pattern.randomTextureRotation).toLowerCase() === 'true',
     };
   }
-  static normalizePoint(point: Point | Position): Point {
-    if (Array.isArray(point)) return [PlanService.finite(point[0]), PlanService.finite(point[1])];
-    return [PlanService.finite(point?.x), PlanService.finite(point?.y)];
+  public normalizePoint(point: Point | Position): Point {
+    if (Array.isArray(point)) return [this.finite(point[0]), this.finite(point[1])];
+    return [this.finite(point?.x), this.finite(point?.y)];
   }
-  static normalizePatternRegion(region: Input<PatternRegion> = {}): PatternRegion {
+  public normalizePatternRegion(region: Input<PatternRegion> = {}): PatternRegion {
     return {
-      x: PlanService.finite(region.x),
-      y: PlanService.finite(region.y),
-      width: Math.max(0, PlanService.finite(region.width)),
-      height: Math.max(0, PlanService.finite(region.height)),
+      x: this.finite(region.x),
+      y: this.finite(region.y),
+      width: Math.max(0, this.finite(region.width)),
+      height: Math.max(0, this.finite(region.height)),
       pattern: String(region.pattern ?? ''),
-      patternX: PlanService.finite(region.patternX),
-      patternY: PlanService.finite(region.patternY),
-      patternRotation: PlanService.finite(region.patternRotation),
+      patternX: this.finite(region.patternX),
+      patternY: this.finite(region.patternY),
+      patternRotation: this.finite(region.patternRotation),
     };
   }
-  static normalizeObject(object: Input<PlanObject> = {}): PlanObject {
+  public normalizeObject(object: Input<PlanObject> = {}): PlanObject {
     return {
       name: String(object.name ?? ''),
-      x: PlanService.finite(object.x),
-      y: PlanService.finite(object.y),
-      width: PlanService.finite(object.width),
-      height: PlanService.finite(object.height),
+      x: this.finite(object.x),
+      y: this.finite(object.y),
+      width: this.finite(object.width),
+      height: this.finite(object.height),
       fill: String(object.fill ?? ''),
-      depth: Math.max(1, PlanService.finite(object.depth, 10)),
+      depth: Math.max(1, this.finite(object.depth, 10)),
     };
   }
-  static floorAim(plan: Pick<Plan, 'walls'>) {
-    const floor = ScenePlacement.floor(plan),
+  public floorAim(plan: Pick<Plan, 'walls'>) {
+    const floor = this.placement.floor(plan),
       points = floor?.outline.points;
     if (!floor || !points?.length) return { aimX: 0, aimY: 0, aimZ: 0 };
     let area = 0,
@@ -119,7 +106,7 @@ export class PlanService {
       x = (Math.min(...xs) + Math.max(...xs)) / 2;
       y = (Math.min(...ys) + Math.max(...ys)) / 2;
     }
-    const placement = ScenePlacement.effective(plan, floor, plan.walls.indexOf(floor)),
+    const placement = this.placement.effective(plan, floor, plan.walls.indexOf(floor)),
       angle = (placement.yaw * Math.PI) / 180;
     const round = (value: number) => Math.round(value * 10000) / 10000;
     return {
@@ -128,10 +115,10 @@ export class PlanService {
       aimZ: round(placement.z),
     };
   }
-  static normalizeLights(data: PlanInput, plan: Pick<Plan, 'walls'>): Light[] {
+  public normalizeLights(data: PlanInput, plan: Pick<Plan, 'walls'>): Light[] {
     const values = Array.isArray(data.lights3d) ? data.lights3d : [data.light3d || {}];
     const used = new Set(),
-      aim = PlanService.floorAim(plan);
+      aim = this.floorAim(plan);
     return values.map((value, index) => {
       if (!value || typeof value !== 'object') value = {};
       let id = String(value.id || 'light-' + (index + 1)),
@@ -141,97 +128,59 @@ export class PlanService {
       used.add(id);
       return {
         id,
-        x: PlanService.finite(value.x, 5000),
-        y: PlanService.finite(value.y, -6000),
-        z: PlanService.finite(value.z, 9000),
-        aimX: PlanService.finite(value.aimX, aim.aimX),
-        aimY: PlanService.finite(value.aimY, aim.aimY),
-        aimZ: PlanService.finite(value.aimZ, aim.aimZ),
+        x: this.finite(value.x, 5000),
+        y: this.finite(value.y, -6000),
+        z: this.finite(value.z, 9000),
+        aimX: this.finite(value.aimX, aim.aimX),
+        aimY: this.finite(value.aimY, aim.aimY),
+        aimZ: this.finite(value.aimZ, aim.aimZ),
         color:
           typeof value.color === 'string' && /^#[0-9a-f]{6}$/i.test(value.color)
             ? value.color
             : '#ffffff',
-        intensity: Math.max(0, PlanService.finite(value.intensity, 2.5)),
+        intensity: Math.max(0, this.finite(value.intensity, 2.5)),
       };
     });
   }
-  setLightValue(id: string, key: string, value: unknown) {
-    if (!isKey(key, ['x', 'y', 'z', 'aimX', 'aimY', 'aimZ', 'color', 'intensity'] as const))
-      return false;
-    const light = this.data.lights3d.find((light) => light.id === id);
-    if (!light) return false;
-    if (key === 'color') {
-      const next = String(value);
-      if (!/^#[0-9a-f]{6}$/i.test(next)) return false;
-      light.color = next;
-    } else {
-      const next = Number(value);
-      if (!Number.isFinite(next) || (key === 'intensity' && next < 0)) return false;
-      light[key] = next;
-    }
-    this.emit({ type: 'light-change', lightId: id, key, value: light[key] });
-    return true;
-  }
-  addLight() {
-    let index = 1;
-    while (this.data.lights3d.some((light) => light.id === 'light-' + index)) index++;
-    const previous = this.data.lights3d.at(-1),
-      aim = PlanService.floorAim(this.data);
-    const light = {
-      id: 'light-' + index,
-      x: previous ? previous.x + 1000 : 5000,
-      y: previous?.y ?? -6000,
-      z: previous?.z ?? 9000,
-      ...aim,
-      color: previous?.color ?? '#ffffff',
-      intensity: previous?.intensity ?? 2.5,
-    };
-    this.data.lights3d.push(light);
-    this.emit({ type: 'light-add', lightId: light.id });
-    return light.id;
-  }
-  removeLight(id: string) {
-    const index = this.data.lights3d.findIndex((light) => light.id === id);
-    if (index < 0) return false;
-    this.data.lights3d.splice(index, 1);
-    this.emit({ type: 'light-remove', lightId: id });
-    return true;
-  }
-  static normalizePlacement(value: Input<Placement> | null | undefined): Placement | null {
+  public normalizePlacement(value: Input<Placement> | null | undefined): Placement | null {
     if (!value || typeof value !== 'object') return null;
     return {
       type: value.type === 'floor' ? 'floor' : 'wall',
-      x: PlanService.finite(value.x),
-      y: PlanService.finite(value.y),
-      z: PlanService.finite(value.z),
-      yaw: PlanService.finite(value.yaw),
+      x: this.finite(value.x),
+      y: this.finite(value.y),
+      z: this.finite(value.z),
+      yaw: this.finite(value.yaw),
     };
   }
-  static normalizeWall(wall: WallInput = {}): Wall {
+  public normalizeWall(wall: WallInput = {}): Wall {
     const outline = wall.outline ?? {};
     return {
       name: String(wall.name ?? ''),
-      x: PlanService.finite(wall.x),
-      y: PlanService.finite(wall.y),
-      rotation: PlanService.finite(wall.rotation),
-      placement3d: PlanService.normalizePlacement(wall.placement3d),
+      x: this.finite(wall.x),
+      y: this.finite(wall.y),
+      rotation: this.finite(wall.rotation),
+      placement3d: this.normalizePlacement(wall.placement3d),
       outline: {
-        points: Array.isArray(outline.points) ? outline.points.map(PlanService.normalizePoint) : [],
+        points: Array.isArray(outline.points)
+          ? outline.points.map((value) => this.normalizePoint(value))
+          : [],
         pattern: String(outline.pattern ?? ''),
-        patternX: PlanService.finite(outline.patternX),
-        patternY: PlanService.finite(outline.patternY),
-        patternRotation: PlanService.finite(outline.patternRotation),
+        patternX: this.finite(outline.patternX),
+        patternY: this.finite(outline.patternY),
+        patternRotation: this.finite(outline.patternRotation),
         fill: String(outline.fill ?? 'white'),
         stroke: String(outline.stroke ?? ''),
-        strokeWidth: PlanService.finite(outline.strokeWidth, 1),
+        strokeWidth: this.finite(outline.strokeWidth, 1),
       },
       patternRegions: Array.isArray(wall.patternRegions)
-        ? wall.patternRegions.map(PlanService.normalizePatternRegion)
+        ? wall.patternRegions.map((value) => this.normalizePatternRegion(value))
         : [],
-      objects: Array.isArray(wall.objects) ? wall.objects.map(PlanService.normalizeObject) : [],
+      objects: Array.isArray(wall.objects)
+        ? wall.objects.map((value) => this.normalizeObject(value))
+        : [],
     };
   }
-  static canvasFromWalls(walls: Wall[] = []): CanvasBounds {
+  public canvasFromWalls(walls: Wall[] = []): CanvasBounds {
     let minX = Infinity,
       minY = Infinity,
       maxX = -Infinity,
@@ -244,7 +193,7 @@ export class PlanService {
       maxY = Math.max(maxY, y);
     };
     for (const wall of walls) {
-      const angle = (PlanService.finite(wall.rotation) * Math.PI) / 180,
+      const angle = (this.finite(wall.rotation) * Math.PI) / 180,
         cos = Math.cos(angle),
         sin = Math.sin(angle);
       const includeLocal = (x: number, y: number) =>
@@ -269,8 +218,10 @@ export class PlanService {
       flipY: maxY,
     };
   }
-  static normalizeData(data: PlanInput = {}): Plan {
-    const walls = Array.isArray(data.walls) ? data.walls.map(PlanService.normalizeWall) : [];
+  public normalizeData(data: PlanInput = {}): Plan {
+    const walls = Array.isArray(data.walls)
+      ? data.walls.map((value) => this.normalizeWall(value))
+      : [];
     if (data.upAxis3d !== 'z')
       for (const wall of walls)
         if (wall.placement3d) {
@@ -279,23 +230,80 @@ export class PlanService {
         }
     return {
       upAxis3d: 'z',
-      lights3d: PlanService.normalizeLights(data, { walls }),
+      lights3d: this.normalizeLights(data, { walls }),
       name: String(data.name ?? 'Tiling plan').trim() || 'Tiling plan',
       units: String(data.units ?? 'mm').trim() || 'mm',
-      canvas: PlanService.canvasFromWalls(walls),
-      patterns: Array.isArray(data.patterns) ? data.patterns.map(PlanService.normalizePattern) : [],
+      canvas: this.canvasFromWalls(walls),
+      patterns: Array.isArray(data.patterns)
+        ? data.patterns.map((value) => this.normalizePattern(value))
+        : [],
       walls,
     };
   }
-  static wallIn(plan: Plan | null, name: string) {
+  public wallIn(plan: Plan | null, name: string) {
     return plan?.walls?.find((wall) => wall.name === name) || null;
+  }
+}
+
+export class PlanService {
+  private placement = new ScenePlacement();
+  data: Plan;
+  listeners = new Set<(change: PlanChange) => void>();
+  constructor(
+    data: PlanInput = {},
+    private publish: () => void = () => {},
+    private normalizer = new PlanNormalizer(),
+  ) {
+    this.data = this.normalizer.normalizeData(data);
+  }
+  setLightValue(id: string, key: string, value: unknown) {
+    if (!isKey(key, ['x', 'y', 'z', 'aimX', 'aimY', 'aimZ', 'color', 'intensity'] as const))
+      return false;
+    const light = this.data.lights3d.find((light) => light.id === id);
+    if (!light) return false;
+    if (key === 'color') {
+      const next = String(value);
+      if (!/^#[0-9a-f]{6}$/i.test(next)) return false;
+      light.color = next;
+    } else {
+      const next = Number(value);
+      if (!Number.isFinite(next) || (key === 'intensity' && next < 0)) return false;
+      light[key] = next;
+    }
+    this.emit({ type: 'light-change', lightId: id, key, value: light[key] });
+    return true;
+  }
+  addLight() {
+    let index = 1;
+    while (this.data.lights3d.some((light) => light.id === 'light-' + index)) index++;
+    const previous = this.data.lights3d.at(-1),
+      aim = this.normalizer.floorAim(this.data);
+    const light = {
+      id: 'light-' + index,
+      x: previous ? previous.x + 1000 : 5000,
+      y: previous?.y ?? -6000,
+      z: previous?.z ?? 9000,
+      ...aim,
+      color: previous?.color ?? '#ffffff',
+      intensity: previous?.intensity ?? 2.5,
+    };
+    this.data.lights3d.push(light);
+    this.emit({ type: 'light-add', lightId: light.id });
+    return light.id;
+  }
+  removeLight(id: string) {
+    const index = this.data.lights3d.findIndex((light) => light.id === id);
+    if (index < 0) return false;
+    this.data.lights3d.splice(index, 1);
+    this.emit({ type: 'light-remove', lightId: id });
+    return true;
   }
   onEvent(listener: (change: PlanChange) => void) {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   }
   emit(change: PlanChange = { type: 'change' }) {
-    this.data.canvas = PlanService.canvasFromWalls(this.data.walls);
+    this.data.canvas = this.normalizer.canvasFromWalls(this.data.walls);
     this.publish();
     for (const listener of [...this.listeners]) {
       try {
@@ -314,14 +322,14 @@ export class PlanService {
     this.emit({ type: 'name-change', oldName, name: this.data.name });
   }
   replaceData(data: PlanInput, change: PlanChange = { type: 'replace' }, emit = true) {
-    this.data = PlanService.normalizeData(data);
+    this.data = this.normalizer.normalizeData(data);
     if (emit) this.emit(change);
   }
   snapshot() {
     return structuredClone(this.data);
   }
   wall(name: string) {
-    return PlanService.wallIn(this.data, name);
+    return this.normalizer.wallIn(this.data, name);
   }
   moveWall(wallName: string, x: number, y: number) {
     const wall = this.wall(wallName);
@@ -355,7 +363,7 @@ export class PlanService {
     const wall = this.wall(wallName);
     if (!wall) return false;
     const placement =
-      wall.placement3d || ScenePlacement.suggest(this.data, wall, this.data.walls.indexOf(wall));
+      wall.placement3d || this.placement.suggest(this.data, wall, this.data.walls.indexOf(wall));
     if (key === 'type') {
       if (value !== 'floor' && value !== 'wall') return false;
       wall.placement3d = { ...placement, type: value };
@@ -411,7 +419,7 @@ export class PlanService {
     const o = this.wall(wallName)?.outline;
     if (!o || !Array.isArray(points)) return false;
     const normalized = points
-      .map(PlanService.normalizePoint)
+      .map((value) => this.normalizer.normalizePoint(value))
       .filter((p) => p.every(Number.isFinite));
     if (normalized.length < 3) return false;
     const oldValue = o.points.map((p) => [...p]);
@@ -463,7 +471,7 @@ export class PlanService {
   addPatternRegion(wallName: string, region: Input<PatternRegion> = {}) {
     const w = this.wall(wallName);
     if (!w) return false;
-    const added = PlanService.normalizePatternRegion(region);
+    const added = this.normalizer.normalizePatternRegion(region);
     w.patternRegions.push(added);
     this.emit({
       type: 'pattern-region-add',
@@ -516,7 +524,7 @@ export class PlanService {
     return true;
   }
   addWall(wall: WallInput) {
-    const added = PlanService.normalizeWall(wall);
+    const added = this.normalizer.normalizeWall(wall);
     this.data.walls.push(added);
     this.emit({ type: 'wall-add', wallName: added.name });
     return true;
@@ -532,7 +540,7 @@ export class PlanService {
   resetWall(name: string, baseline: Wall) {
     const i = this.data.walls.findIndex((w) => w.name === name);
     if (i < 0 || !baseline) return false;
-    const restored = PlanService.normalizeWall(baseline);
+    const restored = this.normalizer.normalizeWall(baseline);
     if (
       restored.name !== name &&
       this.data.walls.some((w, index) => index !== i && w.name === restored.name)
@@ -546,7 +554,7 @@ export class PlanService {
   addObject(wallName: string, object: Input<PlanObject>) {
     const w = this.wall(wallName);
     if (!w) return false;
-    const added = PlanService.normalizeObject(object);
+    const added = this.normalizer.normalizeObject(object);
     w.objects.push(added);
     this.emit({
       type: 'object-add',
@@ -567,13 +575,13 @@ export class PlanService {
   resetObject(wallName: string, index: number, baseline: PlanObject) {
     const w = this.wall(wallName);
     if (!w || !w.objects[index] || !baseline) return false;
-    const restored = PlanService.normalizeObject(baseline);
+    const restored = this.normalizer.normalizeObject(baseline);
     w.objects[index] = restored;
     this.emit({ type: 'object-reset', wallName, index, objectName: restored.name });
     return true;
   }
   addPattern(pattern: PatternInput) {
-    const p = PlanService.normalizePattern(pattern);
+    const p = this.normalizer.normalizePattern(pattern);
     if (!p.name || this.data.patterns.some((x) => x.name === p.name)) return false;
     this.data.patterns.push(p);
     this.emit({ type: 'pattern-add', patternName: p.name });
@@ -669,14 +677,14 @@ export class PlanService {
   }
 }
 export class ScenePlacement {
-  static floor(plan: Pick<Plan, 'walls'>) {
+  public floor(plan: Pick<Plan, 'walls'>) {
     return (
       plan.walls.find((w) => w.placement3d?.type === 'floor') ||
       plan.walls.find((w) => /^(floor|ground|boden)$/i.test(w.name))
     );
   }
-  static suggest(plan: Pick<Plan, 'walls'>, wall: Wall, index: number): Placement {
-    const floor = ScenePlacement.floor(plan);
+  public suggest(plan: Pick<Plan, 'walls'>, wall: Wall, index: number): Placement {
+    const floor = this.floor(plan);
     const points = floor?.outline.points || [
       [0, 0],
       [3000, 3000],
@@ -696,7 +704,7 @@ export class ScenePlacement {
     // Unnamed surfaces remain separate until the user assigns their placement.
     return { type: 'wall', x: maxX + 1000 + index * 800, y: minY, z: 0, yaw: 0 };
   }
-  static effective(plan: Pick<Plan, 'walls'>, wall: Wall, index: number): Placement {
-    return wall.placement3d || ScenePlacement.suggest(plan, wall, index);
+  public effective(plan: Pick<Plan, 'walls'>, wall: Wall, index: number): Placement {
+    return wall.placement3d || this.suggest(plan, wall, index);
   }
 }
