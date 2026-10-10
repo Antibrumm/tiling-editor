@@ -54,6 +54,7 @@ Run `npm run format` to format source, tests, configuration, and documentation w
 | `src/styles.css`                                               | Editor styles                                                                                        |
 | `index.html`                                                   | Page structure, controls, and empty documentation dialogs                                            |
 | `docs/user.md`, `docs/developer.md`                            | User and developer documentation in Markdown                                                         |
+| `src/ui/components/`                                           | Focused Preact sidebar components and shared form controls                                           |
 | `src/ui/`                                                      | UI state, controllers, interaction, document lifecycle, and documentation rendering                  |
 | `src/assets/base-model.yaml`                                   | Starter plan imported as text through Vite                                                           |
 | `vite.config.ts`                                               | Preact integration, asset builds, development server, and local build preview                        |
@@ -63,7 +64,7 @@ Run `npm run format` to format source, tests, configuration, and documentation w
 | `tests/build.test.cjs`                                         | Built application startup, documentation, and asset serving through Vite preview                     |
 | `tests/markdown.test.cjs`                                      | Markdown formatting and HTML sanitization                                                            |
 
-Edit these source files directly. The earlier Python migration/patch scripts are no longer part of the build. Application source is TypeScript with strict checking. The model, codecs, geometry, and 3D/pattern rendering are separate modules; each class has its own TypeScript file, while the editor entry point constructs the classes and defines the Preact controls. Documentation buttons render the Markdown files imported through Vite using Marked and DOMPurify. Edit `docs/user.md` or `docs/developer.md` to update their content. Vite handles development and production builds. Regression test runners remain JavaScript.
+Edit these source files directly. The earlier Python migration/patch scripts are no longer part of the build. Application source is TypeScript with strict checking. The model, codecs, geometry, and 3D/pattern rendering are separate modules; each class has its own TypeScript file, while the editor entry point constructs the classes and connects reactive state. Documentation buttons render the Markdown files imported through Vite using Marked and DOMPurify. Edit `docs/user.md` or `docs/developer.md` to update their content. Vite handles development and production builds. Regression test runners remain JavaScript.
 
 ## Architecture and testing
 

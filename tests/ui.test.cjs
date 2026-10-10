@@ -275,6 +275,32 @@ const wait = () => new Promise((r) => setTimeout(r, 160));
   toggle.dispatchEvent(new window.Event('change'));
   assert(document.getElementById('preview-3d').hidden);
   assert(!document.getElementById('preview').hidden);
+  test.planService.addPattern({ name: 'reorder-test', tileWidth: 100, tileHeight: 100 });
+  await wait();
+  const patternNames = Array.from(test.planService.data.patterns, (pattern) => pattern.name);
+  const patternCards = document.querySelectorAll('#tile-controls > .group-card');
+  assert.equal(patternCards.length, patternNames.length);
+  const dragStart = new window.MouseEvent('dragstart', { bubbles: true, cancelable: true });
+  Object.defineProperty(dragStart, 'dataTransfer', { value: { setData() {} } });
+  patternCards[0].querySelector('.reorder-handle').dispatchEvent(dragStart);
+  patternCards[patternCards.length - 1].dispatchEvent(
+    new window.MouseEvent('drop', { bubbles: true, cancelable: true, clientY: 700 }),
+  );
+  await wait();
+  assert.deepStrictEqual(
+    Array.from(test.planService.data.patterns, (pattern) => pattern.name),
+    [...patternNames.slice(1), patternNames[0]],
+    'Sidebar dragging reorders the persistent model',
+  );
+  assert.equal(source.value, 'draft yaml', 'Reordering preserves the unapplied source draft');
+  const unusedPatternCard = [...document.querySelectorAll('#tile-controls > .group-card')].find(
+    (card) => card.querySelector('summary').textContent.includes('reorder-test'),
+  );
+  unusedPatternCard.querySelector('.control-name-remove').click();
+  assert(document.querySelector('.confirm-dialog').open);
+  document.querySelector('.confirm-dialog button').click();
+  assert.equal(document.querySelector('.confirm-dialog'), null);
+  assert(test.planService.data.patterns.some((pattern) => pattern.name === 'reorder-test'));
   assert.deepStrictEqual(errors, []);
   console.log(
     'Passed: bundled startup, template/sidebar, 3D mode, scene construction, reactive placement/depth, unapplied YAML protection, selection, 2D return. GPU rendering mocked.',

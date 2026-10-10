@@ -33,7 +33,7 @@ interface EditorAppDependencies {
   view: ViewState;
   titleController: TitleController;
   viewController: ViewController;
-  ActionConsole: { log(message: string): void; clear(): void };
+  actionConsole: { log(message: string): void; clear(): void };
   yamlCodec: YamlCodec;
   svgCodec: SvgCodec;
   sourceStatus: HTMLElement;
@@ -90,7 +90,7 @@ export class EditorApp {
 
   loadUploadedPlan(file: File | undefined) {
     if (!file) return;
-    this.dependencies.ActionConsole.log(`Loading “${file.name}”…`);
+    this.dependencies.actionConsole.log(`Loading “${file.name}”…`);
     const reader = new FileReader();
     reader.onload = () => {
       try {
@@ -114,12 +114,12 @@ export class EditorApp {
         this.dependencies.sourceStatus.textContent = `Uploaded ${isYaml ? 'YAML' : 'SVG'} loaded as YAML source.`;
         this.dependencies.sourceStatus.classList.remove('error');
         this.dependencies.uiFeedback.message(`${file.name} loaded.`);
-        this.dependencies.ActionConsole.log(`Loaded “${file.name}” (${isYaml ? 'YAML' : 'SVG'}).`);
+        this.dependencies.actionConsole.log(`Loaded “${file.name}” (${isYaml ? 'YAML' : 'SVG'}).`);
       } catch (error) {
         this.dependencies.uiFeedback.message(
           'Invalid plan: ' + (error instanceof Error ? error.message : String(error)),
         );
-        this.dependencies.ActionConsole.log(
+        this.dependencies.actionConsole.log(
           `Load failed: ${error instanceof Error ? error.message : String(error)}`,
         );
       } finally {
