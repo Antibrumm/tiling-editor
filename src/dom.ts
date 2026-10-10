@@ -11,7 +11,7 @@ interface EditorElements {
   'source-toggle': HTMLInputElement;
   'split-toggle': HTMLInputElement;
   'view-panels': HTMLElement;
-  'preview': HTMLElement;
+  preview: HTMLElement;
   'canvas-stage': HTMLElement;
   'plan-canvas': HTMLCanvasElement;
   'zoom-out': HTMLButtonElement;
@@ -30,14 +30,14 @@ interface EditorElements {
   'source-status': HTMLElement;
   'source-highlight': HTMLElement;
   'highlight-code': HTMLElement;
-  'source': HTMLTextAreaElement;
+  source: HTMLTextAreaElement;
   'clear-action-log': HTMLButtonElement;
   'action-console-log': HTMLElement;
-  'download': HTMLButtonElement;
+  download: HTMLButtonElement;
   'download-png': HTMLButtonElement;
   'download-yaml': HTMLButtonElement;
-  'copy': HTMLButtonElement;
-  'reset': HTMLButtonElement;
+  copy: HTMLButtonElement;
+  reset: HTMLButtonElement;
   'show-labels': HTMLInputElement;
   'show-dimensions': HTMLInputElement;
   'tile-controls': HTMLElement;
@@ -45,7 +45,7 @@ interface EditorElements {
   'wall-controls': HTMLElement;
   'add-wall': HTMLButtonElement;
   'light-controls': HTMLElement;
-  'status': HTMLElement;
+  status: HTMLElement;
   'help-dialog': HTMLDialogElement;
   'help-dialog-title': HTMLElement;
   'help-dialog-content': HTMLElement;

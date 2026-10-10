@@ -3,7 +3,14 @@ const Module = require('node:module');
 const path = require('node:path');
 module.exports = function loadModule(relativePath) {
   const filename = path.resolve(relativePath);
-  const result = esbuild.buildSync({ entryPoints: [filename], bundle: true, platform: 'node', format: 'cjs', packages: 'external', write: false });
+  const result = esbuild.buildSync({
+    entryPoints: [filename],
+    bundle: true,
+    platform: 'node',
+    format: 'cjs',
+    packages: 'external',
+    write: false,
+  });
   const loaded = new Module(filename, module);
   loaded.filename = filename;
   loaded.paths = Module._nodeModulePaths(path.dirname(filename));

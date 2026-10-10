@@ -5,6 +5,7 @@
 - Use Node.js 20.19+ on the 20.x release line, or Node.js 22.12+ and npm. Install dependencies with `npm ci`.
 - Run `npm run dev` for the local preview at http://localhost:5173. Vite watches source changes and updates the browser.
 - Run `npm run typecheck` for strict TypeScript checks, `npm test` for regression tests, and `npm run build` for the static app in `dist/`. `npm run check` runs all three plus the built-app smoke test. Use `npm run preview` to serve the built app locally at http://localhost:4173.
+- Run `npm run format` to apply Prettier formatting and `npm run format:check` to verify it. `npm run check` enforces formatting before tests and builds. Use the project `.prettierrc.json`; exclude generated output through `.prettierignore`.
 - Read `README.md` and inspect the relevant source before making changes.
 
 ## Source and architecture
@@ -51,7 +52,7 @@
 - Make focused changes and carry the requested behavior through controls, model, rendering, and serialization as applicable.
 - Run `npm run check` after application or build changes. Add meaningful regression coverage when changing behavior; avoid tests that only repeat implementation details.
 - For documentation-only changes, review the diff and verify referenced paths and commands; application tests are unnecessary unless code or runtime behavior also changes.
-- Tests live in `tests/pattern.test.cjs`, `tests/model.test.cjs`, `tests/ui.test.cjs`, `tests/build.test.cjs`, and `tests/markdown.test.cjs`. The build smoke test requires an existing `dist/` build and runs through `npm run check`. Model tests load actual TypeScript modules using `tests/load-module.cjs`; UI tests instrument and bundle `src/editor.ts` with its imports. Update UI instrumentation when refactoring.
+- Tests live in `tests/pattern.test.cjs`, `tests/model.test.cjs`, `tests/ui.test.cjs`, `tests/build.test.cjs`, and `tests/markdown.test.cjs`. The build smoke test requires an existing `dist/` build and runs through `npm run check`. Model tests load actual TypeScript modules using `tests/load-module.cjs`; UI tests instrument and bundle `src/editor.ts` with its imports. UI instrumentation uses TypeScript syntax nodes so formatting changes do not break it; update it when refactoring the editor initialization or preview construction.
 - UI tests use real Three.js geometry and controls but mock WebGL rendering. Passing tests does not verify GPU output. Visually inspect rendering changes in a real browser when available, and state when that check could not be performed.
 - Keep dependencies pinned and update the lockfile when dependencies change. Keep `node_modules` and generated `dist` output out of Git.
 - Continue routine, reversible work autonomously. Ask concise questions only when missing information materially changes the task. Report what changed, what was verified, and any remaining limitation.

@@ -1,108 +1,225 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Tiling plan · Canvas editor</title>
-</head>
-<body>
-  <div class="app">
-    <main>
-      <header class="masthead">
-        <div><div class="plan-title-row"><h1 id="plan-title">Tiling plan</h1><button class="title-edit-button" id="edit-plan-title" type="button" aria-label="Edit plan title" title="Edit plan title">✎</button></div><p class="sub">Canvas preview and YAML source update together as you edit walls, objects, and patterns.</p></div>
-        <div class="masthead-tools">
-          <label class="upload-plan" id="upload-plan">
-            <strong>Upload plan</strong>
-            <span>Drop SVG or YAML here, or click to choose</span>
-            <input id="upload-plan-input" type="file" accept="image/svg+xml,.svg,.yaml,.yml,text/yaml,application/yaml">
-          </label>
-          <button class="template-button" id="load-template" type="button">Load template</button>
-          <button class="help-button" id="open-help" type="button">Documentation</button>
-          <button class="help-button" id="open-dev-help" type="button">Developer documentation</button>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tiling plan · Canvas editor</title>
+  </head>
+  <body>
+    <div class="app">
+      <main>
+        <header class="masthead">
+          <div>
+            <div class="plan-title-row">
+              <h1 id="plan-title">Tiling plan</h1>
+              <button
+                class="title-edit-button"
+                id="edit-plan-title"
+                type="button"
+                aria-label="Edit plan title"
+                title="Edit plan title"
+              >
+                ✎
+              </button>
+            </div>
+            <p class="sub">
+              Canvas preview and YAML source update together as you edit walls, objects, and
+              patterns.
+            </p>
+          </div>
+          <div class="masthead-tools">
+            <label class="upload-plan" id="upload-plan">
+              <strong>Upload plan</strong>
+              <span>Drop SVG or YAML here, or click to choose</span>
+              <input
+                id="upload-plan-input"
+                type="file"
+                accept="image/svg+xml,.svg,.yaml,.yml,text/yaml,application/yaml"
+              />
+            </label>
+            <button class="template-button" id="load-template" type="button">Load template</button>
+            <button class="help-button" id="open-help" type="button">Documentation</button>
+            <button class="help-button" id="open-dev-help" type="button">
+              Developer documentation
+            </button>
+          </div>
+        </header>
+        <div class="work">
+          <section class="card" aria-label="Canvas preview and YAML source">
+            <div class="card-head">
+              <h2 id="view-title">Preview</h2>
+              <div style="display: flex; align-items: center; gap: 14px">
+                <label class="view-switch"
+                  ><span>3D preview</span
+                  ><input
+                    id="three-toggle"
+                    type="checkbox"
+                    role="switch"
+                    aria-label="Show 3D preview"
+                /></label>
+                <label class="view-switch"
+                  ><span>YAML source</span
+                  ><input
+                    id="source-toggle"
+                    type="checkbox"
+                    role="switch"
+                    aria-label="Show YAML plan source"
+                /></label>
+                <label class="view-switch"
+                  ><span>Side by side</span
+                  ><input
+                    id="split-toggle"
+                    type="checkbox"
+                    role="switch"
+                    aria-label="Show canvas and YAML source side by side"
+                /></label>
+              </div>
+            </div>
+            <div class="view-panels" id="view-panels">
+              <div class="preview" id="preview" aria-label="Draggable, zoomable canvas preview">
+                <div class="canvas-stage" id="canvas-stage">
+                  <canvas
+                    id="plan-canvas"
+                    aria-label="Tiling plan floor and wall elevations"
+                  ></canvas>
+                </div>
+                <div class="zoom-controls" aria-label="Preview zoom controls">
+                  <button id="zoom-out" type="button" aria-label="Zoom out">−</button>
+                  <output id="zoom-level">100%</output>
+                  <button id="zoom-in" type="button" aria-label="Zoom in">+</button>
+                  <button id="zoom-fit" type="button" aria-label="Fit drawing">Fit</button>
+                </div>
+              </div>
+              <div
+                id="preview-3d"
+                class="preview-3d"
+                hidden
+                aria-label="Interactive 3D room preview"
+              >
+                <div class="three-toolbar">
+                  <button id="three-fit" type="button">Fit room</button
+                  ><button id="three-perspective" type="button">Perspective</button
+                  ><button id="three-top" type="button">Top</button
+                  ><button id="three-front" type="button">Front</button
+                  ><label><input id="three-light-toggle" type="checkbox" /> Light sources</label>
+                </div>
+                <p id="three-status" class="three-hint" role="status">
+                  Drag to orbit · Shift-drag / right-drag to pan · scroll or pinch to zoom · click
+                  to select
+                </p>
+              </div>
+              <div class="code-wrap" id="source-view" hidden>
+                <div class="source-toolbar">
+                  <button id="apply-source" type="button">Apply YAML</button
+                  ><span id="source-status" role="status" aria-live="polite"
+                    >Edit the YAML source, then apply it.</span
+                  >
+                </div>
+                <div class="source-editor-wrap">
+                  <pre
+                    class="source-highlight"
+                    id="source-highlight"
+                    aria-hidden="true"
+                  ><code id="highlight-code"></code></pre>
+                  <textarea
+                    class="source-editor"
+                    id="source"
+                    aria-label="Editable YAML source"
+                    spellcheck="false"
+                    wrap="off"
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
-      </header>
-      <div class="work">
-        <section class="card" aria-label="Canvas preview and YAML source">
-          <div class="card-head">
-            <h2 id="view-title">Preview</h2>
-            <div style="display:flex;align-items:center;gap:14px">
-              <label class="view-switch"><span>3D preview</span><input id="three-toggle" type="checkbox" role="switch" aria-label="Show 3D preview"></label>
-              <label class="view-switch"><span>YAML source</span><input id="source-toggle" type="checkbox" role="switch" aria-label="Show YAML plan source"></label>
-              <label class="view-switch"><span>Side by side</span><input id="split-toggle" type="checkbox" role="switch" aria-label="Show canvas and YAML source side by side"></label>
-            </div>
+        <section class="action-console" aria-label="Action console">
+          <div class="action-console-head">
+            <span>Action log</span>
+            <div><button id="clear-action-log" type="button">Clear</button></div>
           </div>
-          <div class="view-panels" id="view-panels">
-          <div class="preview" id="preview" aria-label="Draggable, zoomable canvas preview">
-            <div class="canvas-stage" id="canvas-stage"><canvas id="plan-canvas" aria-label="Tiling plan floor and wall elevations"></canvas></div>
-            <div class="zoom-controls" aria-label="Preview zoom controls">
-              <button id="zoom-out" type="button" aria-label="Zoom out">−</button>
-              <output id="zoom-level">100%</output>
-              <button id="zoom-in" type="button" aria-label="Zoom in">+</button>
-              <button id="zoom-fit" type="button" aria-label="Fit drawing">Fit</button>
-            </div>
-          </div>
-          <div id="preview-3d" class="preview-3d" hidden aria-label="Interactive 3D room preview">
-            <div class="three-toolbar"><button id="three-fit" type="button">Fit room</button><button id="three-perspective" type="button">Perspective</button><button id="three-top" type="button">Top</button><button id="three-front" type="button">Front</button><label><input id="three-light-toggle" type="checkbox"> Light sources</label></div>
-            <p id="three-status" class="three-hint" role="status">Drag to orbit · Shift-drag / right-drag to pan · scroll or pinch to zoom · click to select</p>
-          </div>
-          <div class="code-wrap" id="source-view" hidden>
-            <div class="source-toolbar"><button id="apply-source" type="button">Apply YAML</button><span id="source-status" role="status" aria-live="polite">Edit the YAML source, then apply it.</span></div>
-            <div class="source-editor-wrap">
-              <pre class="source-highlight" id="source-highlight" aria-hidden="true"><code id="highlight-code"></code></pre>
-              <textarea class="source-editor" id="source" aria-label="Editable YAML source" spellcheck="false" wrap="off"></textarea>
-            </div>
-          </div>
-          </div>
+          <div
+            class="action-console-log"
+            id="action-console-log"
+            role="log"
+            aria-live="polite"
+          ></div>
         </section>
-      </div>
-  <section class="action-console" aria-label="Action console">
-    <div class="action-console-head"><span>Action log</span><div><button id="clear-action-log" type="button">Clear</button></div></div>
-    <div class="action-console-log" id="action-console-log" role="log" aria-live="polite"></div>
-  </section>
-    </main>
-    <aside>
-      <h2>Drawing controls</h2>
-      <p>Edit group positions, named shapes, and tile pattern offsets. Units are in millimeters.</p>
-      <div class="actions"><button class="primary" id="download" type="button">Download SVG</button><button id="download-png" type="button">Download PNG</button><button id="download-yaml" type="button">Download YAML</button><button id="copy" type="button">Copy source</button><button id="reset" type="button">Reset all</button></div>
-      <details class="control-section" open>
-        <summary>Display options</summary>
-        <div class="display-options">
-          <label class="canvas-label-toggle" title="Show or hide element labels"><input id="show-labels" type="checkbox" checked> Labels</label>
-          <label class="canvas-label-toggle" title="Show or hide element dimensions"><input id="show-dimensions" type="checkbox"> Dimensions</label>
+      </main>
+      <aside>
+        <h2>Drawing controls</h2>
+        <p>
+          Edit group positions, named shapes, and tile pattern offsets. Units are in millimeters.
+        </p>
+        <div class="actions">
+          <button class="primary" id="download" type="button">Download SVG</button
+          ><button id="download-png" type="button">Download PNG</button
+          ><button id="download-yaml" type="button">Download YAML</button
+          ><button id="copy" type="button">Copy source</button
+          ><button id="reset" type="button">Reset all</button>
         </div>
-      </details>
-      <details class="control-section" open>
-        <summary>Tile pattern</summary>
-        <div id="tile-controls"></div>
-      </details>
-      <details id="walls-section" class="control-section" open>
-        <summary>Walls</summary>
-        <div id="wall-controls"></div>
-        <button class="add-wall" id="add-wall" type="button">Add wall</button>
-      </details>
-      <details class="control-section"><summary>3D light placement</summary><div id="light-controls"></div></details>
-      <div class="status" id="status" role="status" aria-live="polite"></div>
-    </aside>
-  </div>
+        <details class="control-section" open>
+          <summary>Display options</summary>
+          <div class="display-options">
+            <label class="canvas-label-toggle" title="Show or hide element labels"
+              ><input id="show-labels" type="checkbox" checked /> Labels</label
+            >
+            <label class="canvas-label-toggle" title="Show or hide element dimensions"
+              ><input id="show-dimensions" type="checkbox" /> Dimensions</label
+            >
+          </div>
+        </details>
+        <details class="control-section" open>
+          <summary>Tile pattern</summary>
+          <div id="tile-controls"></div>
+        </details>
+        <details id="walls-section" class="control-section" open>
+          <summary>Walls</summary>
+          <div id="wall-controls"></div>
+          <button class="add-wall" id="add-wall" type="button">Add wall</button>
+        </details>
+        <details class="control-section">
+          <summary>3D light placement</summary>
+          <div id="light-controls"></div>
+        </details>
+        <div class="status" id="status" role="status" aria-live="polite"></div>
+      </aside>
+    </div>
 
-  <dialog class="help-dialog" id="help-dialog" aria-labelledby="help-dialog-title">
-    <div class="help-dialog-shell">
-      <header class="help-dialog-head">
-        <h2 id="help-dialog-title">Tiling plan editor — User documentation</h2>
-        <button class="help-dialog-close" id="close-help" type="button" aria-label="Close documentation" title="Close">×</button>
-      </header>
-      <article class="help-dialog-content" id="help-dialog-content"></article>
-    </div>
-  </dialog>
-  <dialog class="help-dialog" id="dev-help-dialog" aria-labelledby="dev-help-dialog-title">
-    <div class="help-dialog-shell">
-      <header class="help-dialog-head">
-        <h2 id="dev-help-dialog-title">Tiling plan editor — Developer documentation</h2>
-        <button class="help-dialog-close" id="close-dev-help" type="button" aria-label="Close developer documentation" title="Close">×</button>
-      </header>
-      <article class="help-dialog-content" id="dev-help-dialog-content"></article>
-    </div>
-  </dialog>
-  <script type="module" src="./src/editor.ts"></script>
-</body>
+    <dialog class="help-dialog" id="help-dialog" aria-labelledby="help-dialog-title">
+      <div class="help-dialog-shell">
+        <header class="help-dialog-head">
+          <h2 id="help-dialog-title">Tiling plan editor — User documentation</h2>
+          <button
+            class="help-dialog-close"
+            id="close-help"
+            type="button"
+            aria-label="Close documentation"
+            title="Close"
+          >
+            ×
+          </button>
+        </header>
+        <article class="help-dialog-content" id="help-dialog-content"></article>
+      </div>
+    </dialog>
+    <dialog class="help-dialog" id="dev-help-dialog" aria-labelledby="dev-help-dialog-title">
+      <div class="help-dialog-shell">
+        <header class="help-dialog-head">
+          <h2 id="dev-help-dialog-title">Tiling plan editor — Developer documentation</h2>
+          <button
+            class="help-dialog-close"
+            id="close-dev-help"
+            type="button"
+            aria-label="Close developer documentation"
+            title="Close"
+          >
+            ×
+          </button>
+        </header>
+        <article class="help-dialog-content" id="dev-help-dialog-content"></article>
+      </div>
+    </dialog>
+    <script type="module" src="./src/editor.ts"></script>
+  </body>
 </html>

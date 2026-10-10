@@ -5,10 +5,20 @@ import { renderMarkdown } from './markdown';
 
 export function initializeDocumentation(): void {
   const documents = [
-    { dialog: getElement('help-dialog'), content: getElement('help-dialog-content'),
-      open: getElement('open-help'), close: getElement('close-help'), source: userDocumentation },
-    { dialog: getElement('dev-help-dialog'), content: getElement('dev-help-dialog-content'),
-      open: getElement('open-dev-help'), close: getElement('close-dev-help'), source: developerDocumentation },
+    {
+      dialog: getElement('help-dialog'),
+      content: getElement('help-dialog-content'),
+      open: getElement('open-help'),
+      close: getElement('close-help'),
+      source: userDocumentation,
+    },
+    {
+      dialog: getElement('dev-help-dialog'),
+      content: getElement('dev-help-dialog-content'),
+      open: getElement('open-dev-help'),
+      close: getElement('close-dev-help'),
+      source: developerDocumentation,
+    },
   ];
 
   for (const { dialog, content, open, close, source } of documents) {
@@ -21,7 +31,7 @@ export function initializeDocumentation(): void {
       if (typeof dialog.close === 'function') dialog.close();
       else dialog.removeAttribute('open');
     });
-    dialog.addEventListener('click', event => {
+    dialog.addEventListener('click', (event) => {
       if (event.target === dialog) close.click();
     });
   }

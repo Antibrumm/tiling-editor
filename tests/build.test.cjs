@@ -20,14 +20,19 @@ const { JSDOM, VirtualConsole } = require('jsdom');
     for (const file of fs.readdirSync('dist/assets')) {
       const asset = await fetch(`${base}/assets/${file}`);
       assert.equal(asset.status, 200, `Built asset is served: ${file}`);
-      assert.equal(Buffer.from(await asset.arrayBuffer()).length, fs.statSync(path.join('dist/assets', file)).size);
+      assert.equal(
+        Buffer.from(await asset.arrayBuffer()).length,
+        fs.statSync(path.join('dist/assets', file)).size,
+      );
     }
 
     // jsdom cannot execute module scripts, so bundle the emitted modules in
     // memory to exercise the production app, rather than the source entry.
     const bundle = esbuild.buildSync({
       entryPoints: [path.resolve('dist', entry)],
-      bundle: true, format: 'iife', write: false,
+      bundle: true,
+      format: 'iife',
+      write: false,
       define: {
         'import.meta.url': JSON.stringify(new URL(entry, base).href),
         'import.meta.resolve': 'undefined',
@@ -35,19 +40,38 @@ const { JSDOM, VirtualConsole } = require('jsdom');
     }).outputFiles[0].text;
     const errors = [];
     const virtualConsole = new VirtualConsole();
-    virtualConsole.on('jsdomError', error => errors.push(error.message));
+    virtualConsole.on('jsdomError', (error) => errors.push(error.message));
     dom = new JSDOM(html, {
-      runScripts: 'outside-only', pretendToBeVisual: true, url: base,
+      runScripts: 'outside-only',
+      pretendToBeVisual: true,
+      url: base,
       virtualConsole,
       beforeParse(window) {
-        window.ResizeObserver = class { observe() {} };
-        window.Path2D = class { moveTo() {} lineTo() {} closePath() {} rect() {} };
+        window.ResizeObserver = class {
+          observe() {}
+        };
+        window.Path2D = class {
+          moveTo() {}
+          lineTo() {}
+          closePath() {}
+          rect() {}
+        };
         window.structuredClone = structuredClone;
-        window.HTMLDialogElement.prototype.showModal = function () { this.open = true; };
-        window.HTMLDialogElement.prototype.close = function () { this.open = false; };
-        window.HTMLCanvasElement.prototype.getContext = () => new Proxy({}, { get: () => () => {} });
+        window.HTMLDialogElement.prototype.showModal = function () {
+          this.open = true;
+        };
+        window.HTMLDialogElement.prototype.close = function () {
+          this.open = false;
+        };
+        window.HTMLCanvasElement.prototype.getContext = () =>
+          new Proxy({}, { get: () => () => {} });
         window.HTMLElement.prototype.scrollIntoView = () => {};
-        window.HTMLElement.prototype.getBoundingClientRect = () => ({ left: 0, top: 0, width: 900, height: 600 });
+        window.HTMLElement.prototype.getBoundingClientRect = () => ({
+          left: 0,
+          top: 0,
+          width: 900,
+          height: 600,
+        });
       },
     });
     dom.window.eval(bundle);
@@ -57,18 +81,26 @@ const { JSDOM, VirtualConsole } = require('jsdom');
     ]) {
       dom.window.document.getElementById(button).click();
       assert(dom.window.document.getElementById(dialog).open);
-      assert.equal(dom.window.document.getElementById(content).querySelector('h2').textContent, heading);
+      assert.equal(
+        dom.window.document.getElementById(content).querySelector('h2').textContent,
+        heading,
+      );
       dom.window.document.getElementById(dialog).close();
     }
     dom.window.document.getElementById('load-template').click();
-    await new Promise(resolve => setTimeout(resolve, 160));
+    await new Promise((resolve) => setTimeout(resolve, 160));
     assert.equal(dom.window.document.querySelectorAll('.wall-section').length, 7);
     assert(dom.window.document.getElementById('source').value.includes('Tiling Bathroom'));
     assert.deepEqual(errors, []);
-    console.log('Passed: production app startup and template loading, with all dist assets served by Vite preview. Canvas mocked.');
+    console.log(
+      'Passed: production app startup and template loading, with all dist assets served by Vite preview. Canvas mocked.',
+    );
   } finally {
     dom?.window.close();
     server.httpServer.closeAllConnections();
-    await new Promise(resolve => server.httpServer.close(resolve));
+    await new Promise((resolve) => server.httpServer.close(resolve));
   }
-})().catch(error => { console.error(error); process.exitCode = 1; });
+})().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

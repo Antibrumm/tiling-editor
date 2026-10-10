@@ -1,5 +1,6 @@
 import { number } from './format';
-const translateRe = /(?:^|\s)translate\(\s*([+-]?(?:\d+\.?\d*|\.\d+))(?:[\s,]+([+-]?(?:\d+\.?\d*|\.\d+)))?\s*\)/;
+const translateRe =
+  /(?:^|\s)translate\(\s*([+-]?(?:\d+\.?\d*|\.\d+))(?:[\s,]+([+-]?(?:\d+\.?\d*|\.\d+)))?\s*\)/;
 export class Transform2D {
   static translation(element: Element, attribute = 'transform') {
     const match = (element.getAttribute(attribute) || '').match(translateRe);
@@ -8,10 +9,15 @@ export class Transform2D {
   static setTranslation(element: Element, x: number, y: number, attribute = 'transform') {
     const previous = element.getAttribute(attribute) || '';
     const remainder = previous.replace(translateRe, '').trim();
-    element.setAttribute(attribute, `translate(${number(x)} ${number(y)})${remainder ? ' ' + remainder : ''}`);
+    element.setAttribute(
+      attribute,
+      `translate(${number(x)} ${number(y)})${remainder ? ' ' + remainder : ''}`,
+    );
   }
   static rotation(element: Element, attribute = 'transform') {
-    const match = (element.getAttribute(attribute) || '').match(/(?:^|\s)rotate\(\s*([+-]?(?:\d+\.?\d*|\.\d+))/);
+    const match = (element.getAttribute(attribute) || '').match(
+      /(?:^|\s)rotate\(\s*([+-]?(?:\d+\.?\d*|\.\d+))/,
+    );
     return match ? Number(match[1]) : 0;
   }
 }

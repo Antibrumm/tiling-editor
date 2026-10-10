@@ -3,8 +3,11 @@ const esbuild = require('esbuild');
 const { JSDOM } = require('jsdom');
 
 const bundle = esbuild.buildSync({
-  entryPoints: ['src/ui/markdown.ts'], bundle: true, format: 'iife',
-  globalName: 'MarkdownRenderer', write: false,
+  entryPoints: ['src/ui/markdown.ts'],
+  bundle: true,
+  format: 'iife',
+  globalName: 'MarkdownRenderer',
+  write: false,
 }).outputFiles[0].text;
 const dom = new JSDOM('<article></article>', { runScripts: 'outside-only' });
 try {
