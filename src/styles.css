@@ -580,6 +580,10 @@ button:hover {
   font: inherit;
   font-weight: inherit;
 }
+.group-card.selected {
+  border-color: #318357;
+  box-shadow: 0 0 0 2px #318357;
+}
 .group-card {
   border: 1px solid #dde7e1;
   border-radius: 12px;

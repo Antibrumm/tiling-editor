@@ -5,7 +5,7 @@ export class ModelChangeLog {
     if (!change || !change.type) return '';
     switch (change.type) {
       case 'light-change':
-        return `Changed ${change.lightId} ${change.key} to ${change.value}${['color', 'intensity'].includes(change.key) ? '' : ' mm'}.`;
+        return `Changed ${change.lightId} ${change.key} to ${change.value}${change.key === 'angle' ? '°' : ['color', 'intensity', 'type'].includes(change.key) ? '' : ' mm'}.`;
       case 'light-add':
         return `Added ${change.lightId}.`;
       case 'light-remove':

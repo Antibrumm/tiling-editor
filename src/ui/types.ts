@@ -1,4 +1,4 @@
-import type { Plan, Position, SelectionHit } from '../model/types';
+import type { Plan, Position, SurfaceSelectionHit } from '../model/types';
 export type ViewBox = [number, number, number, number];
 export interface ViewState {
   scale: number;
@@ -11,8 +11,8 @@ export interface Gesture {
   lastX: number;
   lastY: number;
   startWorld: Position;
-  hit: SelectionHit | null;
-  target: { semantic: SelectionHit } | null;
+  hit: SurfaceSelectionHit | null;
+  target: { semantic: SurfaceSelectionHit } | null;
   initial: number[] | null;
   dragPlan: Plan | null;
   wallRotation: number;

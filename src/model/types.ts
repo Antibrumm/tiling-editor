@@ -74,6 +74,9 @@ export interface Wall {
 }
 export interface Light {
   id: string;
+  type: 'directional' | 'conic';
+  /** Full opening angle in degrees; used only by conic lights. */
+  angle: number;
   x: number;
   y: number;
   z: number;
@@ -125,6 +128,7 @@ export interface PlanInput {
   lights3d?: Input<Light>[];
   light3d?: Input<Light>;
 }
-export type SelectionHit =
+export type SurfaceSelectionHit =
   | { type: 'wall'; wallId: string; objectName?: never; objectIndex?: never }
   | { type: 'object'; wallId: string; objectName: string; objectIndex: number };
+export type SelectionHit = SurfaceSelectionHit | { type: 'light'; lightId: string };

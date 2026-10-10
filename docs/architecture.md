@@ -257,7 +257,7 @@ Surface cache keys use wall names. Signatures include outlines, regions, objects
 
 `ScenePlacement` supplies suggested positions when explicit placement is absent. `ObjectLayers` processes larger overlapping rectangles first so smaller items can sit in front of containers independently of model order. Room-facing surfaces receive tile textures; external faces use white materials.
 
-Camera fitting uses room geometry, excluding light helpers. Fit room preserves the current direction; Perspective, Top, and Front choose explicit directions. Showing light markers does not change illumination or fitting bounds. Lighting includes configurable directional lights and hemisphere lighting.
+Camera fitting uses room geometry, excluding light helpers. Fit room preserves the current direction; Perspective, Top, and Front choose explicit directions. Showing light markers does not change illumination or fitting bounds. Lighting includes directional lights, conic lights with configurable full opening angles, and hemisphere lighting. Conic lights use Three.js spotlights with half-angles in radians and no distance falloff. Light selection uses visible source and aim markers or sidebar headers, highlights the selected markers and card, and clears surface selection. Light types and angles are persisted; selection and helper visibility remain transient.
 
 ## 7. Build, documentation, and verification
 

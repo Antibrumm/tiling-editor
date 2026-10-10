@@ -28,7 +28,7 @@ function instrument(node) {
     assert(publication, 'Editor exposes the initial model publication');
     edits.push({
       position: publication.getStart(syntax),
-      text: 'window.editorTest={threePreview,planService,selection,effectivePlan,yamlEditingSignal,yamlCodec,svgCodec};\n',
+      text: 'window.editorTest={threePreview,planService,selection,editorState,effectivePlan,yamlEditingSignal,yamlCodec,svgCodec};\n',
     });
   }
   ts.forEachChild(node, instrument);
@@ -180,6 +180,27 @@ const wait = () => new Promise((r) => setTimeout(r, 160));
   markerToggle.dispatchEvent(new window.Event('change'));
   await wait();
   assert(firstLight.marker.visible && firstLight.helper.visible && firstLight.aimMarker.visible);
+  const lightSection = document.getElementById('light-controls').closest('details');
+  lightSection.open = false;
+  test.selection.select({ type: 'wall', wallId: 'floor' });
+  test.threePreview.scene.updateMatrixWorld(true);
+  test.threePreview.camera.updateMatrixWorld(true);
+  const aimScreen = firstLight.aimMarker.position.clone().project(test.threePreview.camera);
+  const previewRect = test.threePreview.renderer.domElement.getBoundingClientRect();
+  test.threePreview.pick({
+    clientX: previewRect.left + ((aimScreen.x + 1) / 2) * previewRect.width,
+    clientY: previewRect.top + ((1 - aimScreen.y) / 2) * previewRect.height,
+  });
+  await wait();
+  assert.equal(test.editorState.selectedLightId, firstId, 'Aim markers select their owning light');
+  assert.equal(test.editorState.selectedWallId, null, 'Light selection clears surface selection');
+  assert(lightSection.open, 'Selecting a light opens its sidebar section');
+  assert(document.querySelector('#light-controls .group-card.selected'));
+  assert.equal(firstLight.marker.material.color.getHexString(), '37ae69');
+  test.selection.select({ type: 'wall', wallId: 'floor' });
+  await wait();
+  assert.equal(test.editorState.selectedLightId, null, 'Surface selection clears light selection');
+  assert.equal(firstLight.marker.material.color.getHexString(), 'ffba45');
   document.getElementById('three-fit').click();
   assert(
     Math.abs(preview.camera.position.distanceTo(preview.controls.target) - roomDistance) < 1e-9,
@@ -196,7 +217,10 @@ const wait = () => new Promise((r) => setTimeout(r, 160));
   const controls = document.getElementById('light-controls');
   const input = (card, label) =>
     [...card.querySelectorAll('label')]
-      .find((node) => node.textContent === label)
+      .find(
+        (node) =>
+          (node.querySelector('.slider-heading > span')?.textContent ?? node.textContent) === label,
+      )
       .querySelector('input');
   const edit = (field, value) => {
     field.value = value;
@@ -259,11 +283,75 @@ const wait = () => new Promise((r) => setTimeout(r, 160));
   assert.equal(test.planService.data.lights3d.length, 1);
   assert.equal(test.threePreview.lights.size, 1);
   assert(!test.threePreview.scene.children.includes(secondLight.light));
+  [...controls.querySelectorAll('button')]
+    .find((button) => button.textContent === 'Add conic light')
+    .click();
+  await wait();
+  const coneCard = controls.querySelectorAll('.group-card')[1];
+  const coneId = test.planService.data.lights3d[1].id;
+  const coneEntry = test.threePreview.lights.get(coneId);
+  assert(coneEntry.light.isSpotLight);
+  assert(Math.abs(coneEntry.light.angle - Math.PI / 6) < 1e-9);
+  coneCard.querySelector('summary').click();
+  await wait();
+  assert.equal(test.editorState.selectedLightId, coneId, 'Light card headers select lights');
+  edit(input(coneCard, 'Cone angle'), '80');
+  edit(input(coneCard, 'Position Z'), '3200');
+  edit(input(coneCard, 'Aim Z'), '200');
+  edit(input(coneCard, 'Light color'), '#ff8040');
+  edit(input(coneCard, 'Intensity'), '3');
+  await wait();
+  assert.equal(test.planService.data.lights3d[1].angle, 80);
+  assert(document.getElementById('action-console-log').textContent.includes('angle to 80°'));
+  assert(Math.abs(coneEntry.light.angle - (40 * Math.PI) / 180) < 1e-9);
+  assert.equal(coneEntry.light.position.z, 3.2);
+  assert.equal(coneEntry.light.target.position.z, 0.2);
+  assert.equal(coneEntry.light.intensity, 3);
+  for (const codec of [test.yamlCodec, test.svgCodec])
+    assert.deepStrictEqual(
+      JSON.parse(JSON.stringify(codec.decode(codec.encode(test.planService.snapshot())).lights3d)),
+      JSON.parse(JSON.stringify(test.planService.snapshot().lights3d)),
+      'Both codecs preserve mixed light types and cone angles',
+    );
+  const typeSelect = coneCard.querySelector('select');
+  typeSelect.value = 'directional';
+  typeSelect.dispatchEvent(new window.Event('change', { bubbles: true }));
+  await wait();
+  assert(test.threePreview.lights.get(coneId).light.isDirectionalLight);
+  assert.equal(coneCard.querySelector('input[max="179"]'), null);
+  assert(!test.threePreview.scene.children.includes(coneEntry.light));
+  typeSelect.value = 'conic';
+  typeSelect.dispatchEvent(new window.Event('change', { bubbles: true }));
+  await wait();
+  assert.equal(
+    test.planService.data.lights3d[1].angle,
+    80,
+    'Changing type preserves the cone angle',
+  );
+  coneCard.querySelector('.control-name-remove').click();
+  document.querySelector('.confirm-remove').click();
+  await wait();
+  assert.equal(
+    test.editorState.selectedLightId,
+    null,
+    'Deleting the selected light clears selection',
+  );
+  assert.equal(test.threePreview.lights.size, 1);
   markerToggle.checked = false;
   markerToggle.dispatchEvent(new window.Event('change'));
   await wait();
   assert.equal(firstLight.marker.visible, false);
   assert.equal(firstLight.aimMarker.visible, false);
+  test.selection.select({ type: 'light', lightId: firstId });
+  test.threePreview.scene.updateMatrixWorld(true);
+  test.threePreview.camera.updateMatrixWorld(true);
+  const hiddenAimScreen = firstLight.aimMarker.position.clone().project(test.threePreview.camera);
+  test.threePreview.pick({
+    clientX: previewRect.left + ((hiddenAimScreen.x + 1) / 2) * previewRect.width,
+    clientY: previewRect.top + ((1 - hiddenAimScreen.y) / 2) * previewRect.height,
+  });
+  await wait();
+  assert.equal(test.editorState.selectedLightId, null, 'Hidden light markers cannot be picked');
   assert.equal(firstLight.light.intensity, initialIntensity);
   test.planService.setPlacement3d('floor', 'x', 725);
   await wait();

@@ -24,14 +24,42 @@ export function LightControls({ context }: { context: ControlPanelDependencies }
         {
           context,
           key: light.id,
-          title: 'Directional light ' + (index + 1),
+          title: (light.type === 'conic' ? 'Conic light ' : 'Directional light ') + (index + 1),
           defaultOpen: true,
+          selected: context.selectedLightIdSignal.value === light.id,
+          onSelect: () => context.selection.select({ type: 'light', lightId: light.id }),
           kind: 'light',
           onRemove: () => context.planService.removeLight(light.id),
         },
         h(
           'div',
           { class: 'coords' },
+          h(
+            'label',
+            { class: 'wide' },
+            'Light type',
+            h(
+              'select',
+              {
+                value: light.type,
+                onChange: (event: JSX.TargetedEvent<HTMLSelectElement, Event>) =>
+                  context.planService.setLightValue(light.id, 'type', event.currentTarget.value),
+              },
+              h('option', { value: 'directional' }, 'Directional'),
+              h('option', { value: 'conic' }, 'Conic'),
+            ),
+          ),
+          light.type === 'conic' &&
+            h(NumberField, {
+              label: 'Cone angle',
+              value: light.angle,
+              min: 1,
+              max: 179,
+              range: true,
+              unit: '°',
+              onInput: (value) => context.planService.setLightValue(light.id, 'angle', value),
+            }),
+          light.type === 'conic' && h('p', { class: 'hint wide' }, 'Full cone opening in degrees.'),
           h(
             'label',
             null,
@@ -82,5 +110,6 @@ export function LightControls({ context }: { context: ControlPanelDependencies }
       ),
     ),
     h(Button, { onClick: () => context.planService.addLight() }, 'Add directional light'),
+    h(Button, { onClick: () => context.planService.addLight('conic') }, 'Add conic light'),
   );
 }

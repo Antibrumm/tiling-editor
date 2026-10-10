@@ -1,4 +1,4 @@
-import { h } from 'preact';
+import { h, type JSX } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 
 import type { CardProps } from './types';
@@ -13,6 +13,7 @@ export function Card({
   children,
   onRename,
   onRemove,
+  onSelect,
   kind = 'item',
   reorder,
   selected = false,
@@ -23,6 +24,8 @@ export function Card({
     if (!selected) return;
     const node = ref.current;
     if (node) {
+      for (let parent = node.parentElement; parent; parent = parent.parentElement)
+        if (parent instanceof HTMLDetailsElement) parent.open = true;
       node.open = true;
       node.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
@@ -30,14 +33,20 @@ export function Card({
   return h(
     'details',
     {
-      class: 'group-card',
+      class: 'group-card' + (selected ? ' selected' : ''),
       ref,
       open: defaultOpen ? true : undefined,
       ...(reorder ? context.reorder.handlers(...reorder) : {}),
     },
     h(
       'summary',
-      { class: 'group-top' },
+      {
+        class: 'group-top',
+        onClick: (event: JSX.TargetedEvent<HTMLElement, MouseEvent>) => {
+          if (event.target instanceof Element && event.target.closest('button, input')) return;
+          onSelect?.();
+        },
+      },
       reorder &&
         h(ReorderHandle, { context, type: reorder[0], index: reorder[1], wallName: reorder[2] }),
       onRename || onRemove

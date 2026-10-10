@@ -31,6 +31,7 @@ export interface CardProps {
   children?: ComponentChildren;
   onRename?: (value: string) => void;
   onRemove?: () => void;
+  onSelect?: () => void;
   kind?: string;
   reorder?: [ReorderType, number, string?];
   selected?: boolean;

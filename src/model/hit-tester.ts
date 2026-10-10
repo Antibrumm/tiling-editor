@@ -1,4 +1,4 @@
-import type { Plan, Position, SelectionHit } from './types';
+import type { Plan, Position, SurfaceSelectionHit } from './types';
 import { GeometryTools } from './geometry';
 /**
  * Finds the wall or object under a point in the 2D viewport's world coordinates.
@@ -10,7 +10,7 @@ export class HitTester {
     private planProvider: Plan | (() => Plan),
     private geometry = new GeometryTools(),
   ) {}
-  hitTest(worldPoint: Position): SelectionHit | null {
+  hitTest(worldPoint: Position): SurfaceSelectionHit | null {
     const supplied =
       typeof this.planProvider === 'function' ? this.planProvider() : this.planProvider;
     const plan = supplied;

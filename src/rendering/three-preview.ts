@@ -11,6 +11,7 @@ interface PreviewState {
   setShowLights(value: boolean): void;
   selectedWall(): string | null;
   selectedObject(): number | null;
+  selectedLight(): string | null;
   select(hit: SelectionHit | null): void;
 }
 interface SurfaceBounds extends Bounds {
@@ -25,10 +26,10 @@ interface SurfaceEntry {
   signature?: string;
 }
 interface LightEntry {
-  light: THREE.DirectionalLight;
+  light: THREE.DirectionalLight | THREE.SpotLight;
   marker: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>;
   aimMarker: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>;
-  helper: THREE.DirectionalLightHelper;
+  helper: THREE.DirectionalLightHelper | THREE.SpotLightHelper;
 }
 
 /**
@@ -307,8 +308,17 @@ export class ThreePreview {
     for (const config of configs) {
       keep.add(config.id);
       let entry = this.lights.get(config.id);
+      if (entry && entry.light instanceof THREE.SpotLight !== (config.type === 'conic')) {
+        this.disposeLight(entry);
+        this.lights.delete(config.id);
+        entry = undefined;
+      }
       if (!entry) {
-        const light = new THREE.DirectionalLight(0xffffff, 2.5);
+        // Match directional intensity without distance falloff; only the cone limits coverage.
+        const light =
+          config.type === 'conic'
+            ? new THREE.SpotLight(0xffffff, 2.5, 0, Math.PI / 6, 0, 0)
+            : new THREE.DirectionalLight(0xffffff, 2.5);
         const marker = new THREE.Mesh(
           new THREE.SphereGeometry(0.08, 16, 12),
           new THREE.MeshBasicMaterial({ color: 0xffba45 }),
@@ -317,7 +327,11 @@ export class ThreePreview {
           new THREE.SphereGeometry(0.04, 12, 8),
           new THREE.MeshBasicMaterial({ color: 0x16b8ba }),
         );
-        const helper = new THREE.DirectionalLightHelper(light, 0.3, 0xffba45);
+        const helper =
+          light instanceof THREE.SpotLight
+            ? new THREE.SpotLightHelper(light, 0xffba45)
+            : new THREE.DirectionalLightHelper(light, 0.3, 0xffba45);
+        marker.userData = aimMarker.userData = { type: 'light', lightId: config.id };
         entry = { light, marker, aimMarker, helper };
         this.lights.set(config.id, entry);
         this.scene.add(light, light.target, marker, aimMarker, helper);
@@ -325,12 +339,24 @@ export class ThreePreview {
       entry.light.position.set(config.x / 1000, config.y / 1000, config.z / 1000);
       entry.light.color.set(config.color);
       entry.light.intensity = config.intensity;
+      if (entry.light instanceof THREE.SpotLight)
+        entry.light.angle = (config.angle * Math.PI) / 360;
       entry.light.target.position.set(config.aimX / 1000, config.aimY / 1000, config.aimZ / 1000);
       entry.light.updateMatrixWorld();
       entry.light.target.updateMatrixWorld();
       entry.helper.update();
+      if (entry.helper instanceof THREE.SpotLightHelper && entry.light instanceof THREE.SpotLight) {
+        const length = Math.max(0.1, entry.light.position.distanceTo(entry.light.target.position));
+        const width = length * Math.tan(entry.light.angle);
+        entry.helper.cone.scale.set(width, width, length);
+      }
       entry.marker.position.copy(entry.light.position);
       entry.aimMarker.position.copy(entry.light.target.position);
+      const selected = this.state.selectedLight() === config.id;
+      entry.marker.material.color.set(selected ? 0x37ae69 : 0xffba45);
+      entry.aimMarker.material.color.set(selected ? 0x37ae69 : 0x16b8ba);
+      entry.marker.scale.setScalar(selected ? 1.4 : 1);
+      entry.aimMarker.scale.setScalar(selected ? 1.4 : 1);
       entry.marker.visible =
         entry.aimMarker.visible =
         entry.helper.visible =
@@ -338,21 +364,18 @@ export class ThreePreview {
     }
     for (const [id, entry] of this.lights)
       if (!keep.has(id)) {
-        this.scene.remove(
-          entry.light,
-          entry.light.target,
-          entry.marker,
-          entry.aimMarker,
-          entry.helper,
-        );
-        entry.helper.dispose();
-        entry.light.dispose();
-        for (const marker of [entry.marker, entry.aimMarker]) {
-          marker.geometry.dispose();
-          marker.material.dispose();
-        }
+        this.disposeLight(entry);
         this.lights.delete(id);
       }
+  }
+  private disposeLight(entry: LightEntry) {
+    this.scene.remove(entry.light, entry.light.target, entry.marker, entry.aimMarker, entry.helper);
+    entry.helper.dispose();
+    entry.light.dispose();
+    for (const marker of [entry.marker, entry.aimMarker]) {
+      marker.geometry.dispose();
+      marker.material.dispose();
+    }
   }
   update(plan: Plan) {
     this.updateLights(plan.lights3d);
@@ -469,7 +492,11 @@ export class ThreePreview {
       entry.group.traverse((node) => {
         if (node instanceof this.THREE.Mesh) meshes.push(node);
       });
-    const hit = ray.intersectObjects(meshes, false)[0];
+    const markers: THREE.Object3D[] = [];
+    for (const entry of this.lights.values())
+      for (const marker of [entry.marker, entry.aimMarker])
+        if (marker.visible) markers.push(marker);
+    const hit = ray.intersectObjects(markers, false)[0] || ray.intersectObjects(meshes, false)[0];
     this.state.select((hit?.object.userData as SelectionHit | undefined) || null);
   }
 }

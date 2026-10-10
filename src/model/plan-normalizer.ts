@@ -127,8 +127,15 @@ export class PlanNormalizer {
         suffix = 2;
       while (used.has(id)) id = base + '-' + suffix++;
       used.add(id);
+      if (value.type !== undefined && value.type !== 'directional' && value.type !== 'conic')
+        throw new Error(`Unknown light type for ${id}.`);
+      const angle = value.angle == null ? 60 : Number(value.angle);
+      if (!Number.isFinite(angle) || angle < 1 || angle > 179)
+        throw new Error(`Light ${id} cone angle must be between 1 and 179 degrees.`);
       return {
         id,
+        type: value.type ?? 'directional',
+        angle,
         x: this.finite(value.x, 5000),
         y: this.finite(value.y, -6000),
         z: this.finite(value.z, 9000),

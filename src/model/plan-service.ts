@@ -11,6 +11,7 @@ import type {
   PlanObject,
   Wall,
   WallInput,
+  Light,
 } from './types';
 
 function isKey<T extends string>(key: string, keys: readonly T[]): key is T {
@@ -35,29 +36,53 @@ export class PlanService {
     this.data = this.normalizer.normalizeData(data);
   }
   setLightValue(id: string, key: string, value: unknown) {
-    if (!isKey(key, ['x', 'y', 'z', 'aimX', 'aimY', 'aimZ', 'color', 'intensity'] as const))
+    if (
+      !isKey(key, [
+        'x',
+        'y',
+        'z',
+        'aimX',
+        'aimY',
+        'aimZ',
+        'color',
+        'intensity',
+        'type',
+        'angle',
+      ] as const)
+    )
       return false;
     const light = this.data.lights3d.find((light) => light.id === id);
     if (!light) return false;
-    if (key === 'color') {
+    if (key === 'type') {
+      if (value !== 'directional' && value !== 'conic') return false;
+      light.type = value;
+    } else if (key === 'color') {
       const next = String(value);
       if (!/^#[0-9a-f]{6}$/i.test(next)) return false;
       light.color = next;
     } else {
       const next = Number(value);
-      if (!Number.isFinite(next) || (key === 'intensity' && next < 0)) return false;
+      if (
+        !Number.isFinite(next) ||
+        (key === 'intensity' && next < 0) ||
+        (key === 'angle' && (next < 1 || next > 179))
+      )
+        return false;
       light[key] = next;
     }
     this.emit({ type: 'light-change', lightId: id, key, value: light[key] });
     return true;
   }
-  addLight() {
+  addLight(type: Light['type'] = 'directional') {
+    if (type !== 'directional' && type !== 'conic') throw new Error('Unknown light type.');
     let index = 1;
     while (this.data.lights3d.some((light) => light.id === 'light-' + index)) index++;
     const previous = this.data.lights3d.at(-1),
       aim = this.normalizer.floorAim(this.data);
-    const light = {
+    const light: Light = {
       id: 'light-' + index,
+      type,
+      angle: 60,
       x: previous ? previous.x + 1000 : 5000,
       y: previous?.y ?? -6000,
       z: previous?.z ?? 9000,

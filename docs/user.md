@@ -28,7 +28,9 @@ Open **3D placement** inside each wall section to choose a vertical wall or hori
 
 The 3D materials use the same pattern offsets, rotation, grout, textures, and pattern regions as the 2D view. YAML preserves all 3D placement and depth values. PNG export continues to export the 2D drawing.
 
-**3D light placement** lets you add and remove directional lights and edit each light’s color, intensity, and Position and Aim coordinates in millimeters. Default and newly added lights aim at the floor’s center in world coordinates. Intensity starts at 2.5; set it to 0 to turn off a directional light. Turn on **Light sources** in the 3D toolbar to show gold source markers, turquoise aim markers, and direction helpers. Fit room frames the room while preserving the current viewing angle. The Perspective, Top, and Front buttons select a new viewing angle. All light settings are saved with the plan; the soft hemisphere lighting stays active.
+**3D light placement** lets you add directional or conic lights and edit each light’s color, intensity, and Position and Aim coordinates in millimeters. Use **Light type** to switch between them. Conic lights also have a **Cone angle** slider: the full opening angle in degrees, from 1° to 179°, initially 60°. Their illumination is limited to that cone, without distance falloff. Default and newly added lights aim at the floor’s center in world coordinates. Set intensity to 0 to turn off a light.
+
+Click a light’s card header to select it. With **Light sources** enabled in the 3D toolbar, you can also click its gold source marker or turquoise aim marker. Selection highlights the markers in green and opens the matching controls. Use the × in the card header to remove a light after confirmation. The helpers show the light’s direction and, for conic lights, the cone opening. Hiding helpers does not change illumination. Fit room frames the room while preserving the current viewing angle. The Perspective, Top, and Front buttons select a new viewing angle. Light types, cone angles, and other settings are saved with the plan; the soft hemisphere lighting stays active.
 
 ## YAML source
 

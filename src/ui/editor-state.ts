@@ -7,6 +7,7 @@ import type { Plan } from '../model/types';
  */
 export class EditorState {
   selectedWallId: string | null;
+  selectedLightId: string | null;
   selectedObjectName: string | null;
   selectedObjectIndex: number | null;
   interactionPlan: Plan | null;
@@ -14,6 +15,7 @@ export class EditorState {
   splitView: boolean;
   constructor() {
     this.selectedWallId = null;
+    this.selectedLightId = null;
     this.selectedObjectName = null;
     this.selectedObjectIndex = null;
     this.sourceVisible = false;

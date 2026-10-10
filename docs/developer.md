@@ -85,7 +85,9 @@ The preview is rendered directly with Canvas 2D. Tile patterns are clipped to wa
 
 ## Controls and selection
 
-The sidebar uses native disclosure sections. Selection coordinates canvas state with the matching wall or object controls. Name editing uses temporary text inputs; Enter commits, Escape cancels, and edit-control pointer events are isolated from the surrounding disclosure summary. Reordering is constrained to items at the same structural level.
+The sidebar uses native disclosure sections. Selection coordinates canvas state with the matching wall, object, or light controls. `selectedLightId` is transient and mutually exclusive with surface selection. In 3D, visible source and aim markers carry semantic light IDs and take picking priority over surfaces; hidden markers are excluded. Selecting a light opens its enclosing controls and highlights its markers. Name editing uses temporary text inputs; Enter commits, Escape cancels, and edit-control pointer events are isolated from the surrounding disclosure summary. Reordering is constrained to items at the same structural level.
+
+Lights persist a `type` (`directional` or `conic`) and a full cone `angle` in degrees (1–179, default 60). Plans without these fields retain directional behavior. `PlanService` validates edits and `PlanNormalizer` validates imported types and angles. The codecs preserve both fields. `ThreePreview` uses `SpotLight` and `SpotLightHelper` for conic lights, converts the full angle to a half-angle in radians, and uses no distance falloff to match the existing intensity controls. The visible cone extends to the aim point while illumination has unlimited range. Type changes replace and dispose the prior light, target, markers, and helper; ordinary property edits reuse them.
 
 ## Reset behavior
 

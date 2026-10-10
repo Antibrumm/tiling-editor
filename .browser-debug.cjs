@@ -100,6 +100,12 @@ const { pathToFileURL } = require('node:url');
     await send('Log.enable');
     await send('Page.enable');
     await send('Network.enable');
+    await send('Emulation.setDeviceMetricsOverride', {
+      width: 1440,
+      height: 1000,
+      deviceScaleFactor: 1,
+      mobile: false,
+    });
     await send('Page.navigate', { url: targetUrl });
     await new Promise((r) => setTimeout(r, 1500));
     const run = async (expression) => {
@@ -126,6 +132,32 @@ const { pathToFileURL } = require('node:url');
     );
     assert.equal(rendered.webgl, true);
     assert(rendered.status.startsWith('Drag to orbit'));
+    const conic = await run(`(async () => {
+      const controls = document.getElementById('light-controls');
+      [...controls.querySelectorAll('button')].find(button => button.textContent === 'Add conic light').click();
+      await new Promise(resolve => setTimeout(resolve, 100));
+      const card = [...controls.querySelectorAll('.group-card')].at(-1);
+      for (const [label, value] of [['Position X', '1500'], ['Position Y', '1500'], ['Position Z', '2200'], ['Aim X', '1500'], ['Aim Y', '1500'], ['Aim Z', '0'], ['Cone angle', '70'], ['Intensity', '3']]) {
+        const field = [...card.querySelectorAll('label')].find(node => (node.querySelector('.slider-heading > span')?.textContent ?? node.textContent) === label).querySelector('input');
+        field.value = value;
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      card.querySelector('summary').click();
+      document.getElementById('three-light-toggle').click();
+      await new Promise(resolve => setTimeout(resolve, 250));
+      return { selected: card.classList.contains('selected'), coneAngle: card.querySelector('input[max="179"]').value,
+        savedType: document.getElementById('source').value.includes('type: conic'), savedAngle: document.getElementById('source').value.includes('angle: 70') };
+    })()`);
+    assert(conic.selected && conic.savedType && conic.savedAngle);
+    assert.equal(conic.coneAngle, '70');
+    if (process.argv.includes('--screenshot')) {
+      await run(`document.getElementById('preview-3d').scrollIntoView({block:'center'})`);
+      const screenshot = await send('Page.captureScreenshot', { format: 'png' });
+      const screenshotPath = path.join(os.tmpdir(), 'tiling-conic-light.png');
+      fs.writeFileSync(screenshotPath, Buffer.from(screenshot.data, 'base64'));
+      console.log('Conic light screenshot:', screenshotPath);
+    }
+    console.log('Passed: conic light controls, selection, and angle changes render in Chrome.');
     await run(
       `document.getElementById('open-help').click(); document.querySelector('[data-document="architecture"]').click()`,
     );

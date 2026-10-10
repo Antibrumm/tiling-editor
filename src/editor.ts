@@ -46,6 +46,7 @@ function init() {
   const lightVisibleSignal = signal(false);
   const yamlEditingSignal = signal(false);
   const selectedWallIdSignal = signal<string | null>(null);
+  const selectedLightIdSignal = signal<string | null>(null);
   const selectedObjectNameSignal = signal<string | null>(null);
   const selectedObjectIndexSignal = signal<number | null>(null);
   const effectivePlan = computed(() => interactionPlanSignal.value || planSignal.value);
@@ -201,6 +202,7 @@ function init() {
     planService,
     uiFeedback,
     selectedWallIdSignal,
+    selectedLightIdSignal,
     selectedObjectIndexSignal,
     get selection() {
       return selection;
@@ -225,6 +227,12 @@ function init() {
     },
   });
   Object.defineProperties(editorState, {
+    selectedLightId: {
+      get: () => selectedLightIdSignal.value,
+      set: (value) => {
+        selectedLightIdSignal.value = value;
+      },
+    },
     selectedWallId: {
       get: () => selectedWallIdSignal.value,
       set: (value) => {
@@ -324,6 +332,7 @@ function init() {
         lightVisibleSignal.value = value;
       },
       selectedWall: () => selectedWallIdSignal.value,
+      selectedLight: () => selectedLightIdSignal.value,
       selectedObject: () => selectedObjectIndexSignal.value,
       select: (hit) => selection.select(hit),
     },
@@ -332,6 +341,7 @@ function init() {
   effect(() => {
     effectivePlan.value;
     lightVisibleSignal.value;
+    selectedLightIdSignal.value;
     selectedWallIdSignal.value;
     selectedObjectIndexSignal.value;
     threePreview.request();
@@ -401,6 +411,7 @@ function init() {
     effectivePlan.value;
     selectedWallIdSignal.value;
     selectedObjectIndexSignal.value;
+    selectedLightIdSignal.value;
     controlPanel.render(sidebarMount);
   });
   const modelChangeLog = new ModelChangeLog();
@@ -410,6 +421,8 @@ function init() {
   });
   planService.onEvent((change) => {
     if (!change) return;
+    if (change.type === 'light-remove' && selectedLightIdSignal.value === change.lightId)
+      selection.clear();
     if (change.type === 'wall-rename' && wallResetSnapshots.has(change.oldName)) {
       const baseline = wallResetSnapshots.get(change.oldName);
       wallResetSnapshots.delete(change.oldName);

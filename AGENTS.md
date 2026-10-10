@@ -45,7 +45,8 @@
 ## Lights and controls
 
 - Keep Walls in a details section, followed by the 3D light placement section.
-- Each directional light has its own position XYZ, aim XYZ, color, and nonnegative intensity. Intensity 0 disables its contribution.
+- Directional and conic lights have position XYZ, aim XYZ, color, and nonnegative intensity. Conic lights also have a full opening angle in degrees (1–179, default 60), converted to a half-angle in radians at the Three.js boundary. Intensity 0 disables either type. Preserve old plans as directional when the type is absent.
+- Lights are selected through sidebar headers or visible source/aim markers. Keep light selection transient and mutually exclusive with wall/object selection; open the selected controls, exclude hidden markers from picking, and clear selection when the selected light is removed.
 - Default and newly added lights aim at the floor's geometric center transformed into world coordinates. Preserve explicit saved custom aims.
 - The Light sources toggle shows source markers, aim markers, and direction helpers. Toggling it does not change the light's illumination or camera framing.
 - Keep light settings in plan serialization; helper visibility is presentation state. The soft hemisphere lighting remains active.

@@ -11,6 +11,7 @@ export interface ControlPanelDependencies {
   planService: PlanService;
   uiFeedback: UiFeedback;
   selectedWallIdSignal: Signal<string | null>;
+  selectedLightIdSignal: Signal<string | null>;
   selectedObjectIndexSignal: Signal<number | null>;
   selection: Selection;
   resetObjectToLoadedState: (wallName: string, objectIndex: number) => void;

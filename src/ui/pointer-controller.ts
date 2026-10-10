@@ -1,4 +1,4 @@
-import type { Plan, Position, SelectionHit } from '../model/types';
+import type { Plan, Position, SurfaceSelectionHit } from '../model/types';
 
 import { PlanService } from '../model/plan-service';
 import { PlanNormalizer } from '../model/plan-normalizer';
@@ -66,7 +66,7 @@ export class PointerController {
     this.element.addEventListener('pointerup', (event) => this.pointerUp(event));
     this.element.addEventListener('pointercancel', (event) => this.pointerCancel(event));
   }
-  resolveTarget(hit: SelectionHit | null) {
+  resolveTarget(hit: SurfaceSelectionHit | null) {
     return hit ? { semantic: hit } : null;
   }
   pointerDown(event: PointerEvent) {

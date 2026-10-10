@@ -153,6 +153,17 @@ const migrated = context.yamlCodec.decode(
 assert.equal(migrated.lights3d.length, 1);
 assert.equal(migrated.lights3d[0].x, 1200);
 assert.equal(migrated.lights3d[0].aimZ, 0);
+assert.equal(migrated.lights3d[0].type, 'directional', 'Legacy lights retain directional behavior');
+assert.equal(migrated.lights3d[0].angle, 60);
+assert.throws(
+  () => new context.PlanService({ lights3d: [{ type: 'unknown' }] }),
+  /Unknown light type/,
+);
+for (const angle of [0, 180, Infinity, 'invalid'])
+  assert.throws(
+    () => new context.PlanService({ lights3d: [{ type: 'conic', angle }] }),
+    /cone angle/,
+  );
 const duplicated = new context.PlanService({
   lights3d: [{ id: 'same' }, { id: 'same' }, { id: 'same-2' }],
 });
@@ -177,6 +188,7 @@ const preview = new context.ThreePreview(
     },
     selectedWall: () => null,
     selectedObject: () => null,
+    selectedLight: () => null,
     select() {},
   },
   () => {},
@@ -216,6 +228,43 @@ assert.equal(
   0,
 );
 const floor = preview.entries.get('floor');
+const coneId = service.addLight('conic');
+assert.equal(service.setLightValue(coneId, 'angle', 80), true);
+for (const angle of [0, 180, Infinity, 'invalid'])
+  assert.equal(service.setLightValue(coneId, 'angle', angle), false);
+assert.equal(service.setLightValue(coneId, 'type', 'point'), false);
+service.setLightValue(coneId, 'intensity', 3);
+preview.update(service.snapshot());
+const coneEntry = preview.lights.get(coneId);
+assert(coneEntry.light instanceof THREE.SpotLight);
+assert(coneEntry.helper instanceof THREE.SpotLightHelper);
+assert.equal(coneEntry.light.angle, (80 * Math.PI) / 360);
+assert.equal(coneEntry.light.intensity, 3);
+assert.equal(coneEntry.light.decay, 0);
+assert.equal(
+  coneEntry.helper.cone.scale.z,
+  coneEntry.light.position.distanceTo(coneEntry.light.target.position),
+);
+assert.equal(coneEntry.marker.visible, false);
+service.setLightValue(coneId, 'angle', 30);
+preview.update(service.snapshot());
+assert.equal(preview.lights.get(coneId), coneEntry, 'Angle edits reuse the spotlight and helper');
+assert.equal(coneEntry.light.angle, (30 * Math.PI) / 360);
+const roundTripLights = context.yamlCodec.decode(
+  context.yamlCodec.encode(service.snapshot()),
+).lights3d;
+assert.deepStrictEqual(roundTripLights, service.snapshot().lights3d);
+let coneDisposed = false;
+coneEntry.marker.geometry.addEventListener('dispose', () => (coneDisposed = true));
+service.setLightValue(coneId, 'type', 'directional');
+preview.update(service.snapshot());
+assert(coneDisposed, 'Changing light type disposes the previous marker resources');
+assert(preview.lights.get(coneId).light instanceof THREE.DirectionalLight);
+assert(!preview.scene.children.includes(coneEntry.light));
+assert(!preview.scene.children.includes(coneEntry.helper));
+service.removeLight(coneId);
+preview.update(service.snapshot());
+assert.equal(preview.lights.size, 0);
 const point = new THREE.Vector3(1, 2, 0).applyMatrix4(floor.mesh.matrixWorld);
 assert(
   Math.abs(point.x - 1.123) < 1e-9 && Math.abs(point.y - 2) < 1e-9 && Math.abs(point.z) < 1e-9,
