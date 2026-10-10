@@ -2,7 +2,7 @@ const fs=require('fs'),assert=require('assert'),esbuild=require('esbuild');
 const {JSDOM,VirtualConsole}=require('jsdom');
 const source=fs.readFileSync('src/editor.ts','utf8').replace("import './styles.css';",'').replace('}, paintSurfacePattern)', '}, paintSurfacePattern, () => new window.TestRenderer())').replace('    init();', '    init();');
 const instrumented=source.replace('      publishPersistentPlan();\n      ViewController.updateView();','      window.editorTest={threePreview,planService,selection,effectivePlan,yamlEditingSignal,YamlCodec,SvgCodec};\n      publishPersistentPlan();\n      ViewController.updateView();');
-const bundle=esbuild.buildSync({stdin:{contents:instrumented,resolveDir:process.cwd()+'/src',sourcefile:'test-editor.mjs',loader:'ts'},bundle:true,loader:{'.yaml':'text'},format:'iife',write:false,target:'es2020'}).outputFiles[0].text;
+const bundle=esbuild.buildSync({stdin:{contents:instrumented,resolveDir:process.cwd()+'/src',sourcefile:'test-editor.mjs',loader:'ts'},bundle:true,loader:{'.yaml':'text','.md':'text'},format:'iife',write:false,target:'es2020'}).outputFiles[0].text;
 const html=fs.readFileSync('index.html','utf8').replace(/<script type="module" src="\.\/src\/editor.ts"><\/script>/,()=>'<script>'+bundle.replace(/<\/script/gi,'<\\/script')+'</script>');
 const errors=[],vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(e.message));
 const dom=new JSDOM(html,{runScripts:'dangerously',pretendToBeVisual:true,url:'https://editor.test/',virtualConsole:vc,beforeParse(window){
@@ -18,6 +18,22 @@ const wait=()=>new Promise(r=>setTimeout(r,160));
 (async()=>{
   await wait();assert.deepStrictEqual(errors,[],'Editor starts without DOM errors');
   const window=dom.window,document=window.document;
+  for(const [buttonId,dialogId,contentId,closeId,heading] of [
+    ['open-help','help-dialog','help-dialog-content','close-help','Getting started'],
+    ['open-dev-help','dev-help-dialog','dev-help-dialog-content','close-dev-help','Architecture'],
+  ]) {
+    const dialog=document.getElementById(dialogId),content=document.getElementById(contentId);
+    assert.equal(content.children.length,0,'Documentation is rendered on demand');
+    document.getElementById(buttonId).click();
+    assert(dialog.open);
+    assert.equal(content.querySelector('h2').textContent,heading);
+    assert(content.querySelector('strong, code'),'Markdown inline formatting is rendered');
+    document.getElementById(closeId).click();
+    assert(!dialog.open);
+    document.getElementById(buttonId).click();
+    dialog.dispatchEvent(new window.MouseEvent('click',{bubbles:true}));
+    assert(!dialog.open,'Clicking the dialog backdrop closes it');
+  }
   document.getElementById('edit-plan-title').click();
   const titleInput=document.getElementById('plan-title-input');
   assert(titleInput,'The optional title editor can be created');

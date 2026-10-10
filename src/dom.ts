@@ -48,9 +48,11 @@ interface EditorElements {
   'status': HTMLElement;
   'help-dialog': HTMLDialogElement;
   'help-dialog-title': HTMLElement;
+  'help-dialog-content': HTMLElement;
   'close-help': HTMLButtonElement;
   'dev-help-dialog': HTMLDialogElement;
   'dev-help-dialog-title': HTMLElement;
+  'dev-help-dialog-content': HTMLElement;
   'close-dev-help': HTMLButtonElement;
 }
 export function getElement<K extends keyof EditorElements>(id: K): EditorElements[K];

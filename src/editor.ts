@@ -1,4 +1,5 @@
 import './styles.css';
+import { initializeDocumentation } from './ui/documentation';
 import baseModelYaml from './assets/base-model.yaml?raw';
 import { getElement, get2DContext } from './dom';
 import type { Plan, Wall, PlanObject, Pattern, Point, Position, SelectionHit, Bounds } from './model/types';
@@ -1010,18 +1011,7 @@ interface Gesture { pointerId: number; startX: number; startY: number; lastX: nu
       planService.onEvent(change => { if (change && change.type === 'name-change') TitleController.update(); });
       TitleController.update();
 
-      const helpDialog = getElement('help-dialog');
-      const devHelpDialog = getElement('dev-help-dialog');
-      const openDialog = (dialog: HTMLDialogElement) => {
-        if (typeof dialog.showModal === 'function') dialog.showModal();
-        else dialog.setAttribute('open', '');
-      };
-      getElement('open-help').addEventListener('click', () => openDialog(helpDialog));
-      getElement('open-dev-help').addEventListener('click', () => openDialog(devHelpDialog));
-      getElement('close-help').addEventListener('click', () => helpDialog.close());
-      getElement('close-dev-help').addEventListener('click', () => devHelpDialog.close());
-      helpDialog.addEventListener('click', event => { if (event.target === helpDialog) helpDialog.close(); });
-      devHelpDialog.addEventListener('click', event => { if (event.target === devHelpDialog) devHelpDialog.close(); });
+      initializeDocumentation();
 
       getElement('reset').addEventListener('click', () => {
         app.replaceDocument(resetSnapshot,{change:{type:'reset'},establishResetPoint:false,fitView:true});

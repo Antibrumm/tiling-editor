@@ -91,47 +91,7 @@
         <h2 id="help-dialog-title">Tiling plan editor — User documentation</h2>
         <button class="help-dialog-close" id="close-help" type="button" aria-label="Close documentation" title="Close">×</button>
       </header>
-      <article class="help-dialog-content">
-        <h3>Getting started</h3>
-        <p>The editor opens without a plan. Choose <strong>Load template</strong> to load the integrated “Tiling Bathroom” example, or use <strong>Upload plan</strong> to open a YAML or SVG plan. The canvas and controls are generated from the current plan data.</p>
-
-        <h3>Preview navigation</h3>
-        <p>Use the preview to inspect and edit the plan visually. Use the + and − controls to zoom and <strong>Fit</strong> to fit the drawing into the available preview. The canvas can be panned, and touch devices support pinch zoom.</p>
-
-        <h3>Selecting and moving walls and elements</h3>
-        <p>Select a wall or an element directly on the canvas. Selected items can be dragged to a new position. Positions are stored in whole millimeters. Elements are constrained to their wall outline while dragging.</p>
-
-        <h3>Drawing controls</h3>
-        <p>The sidebar contains the editable tile patterns, walls, and wall elements. Expand a section to edit its values. Use the pencil beside a name to rename it. Walls and elements can be added, removed, reset, and reordered within their own level using the drag handle.</p>
-        <p><strong>Labels</strong> and <strong>Dimensions</strong> under Display options control the annotations shown on the canvas.</p>
-
-        <h3>Tile patterns</h3>
-        <p>Tile patterns define tile width, tile height, border size, tile color, border color, and pattern placement. A texture image can replace the tile color. When a texture is present, <strong>Random texture rotation</strong> can rotate individual tiles by deterministic 90° steps while keeping the layout stable between redraws.</p>
-
-        <h3>3D preview</h3>
-        <p>Turn on <strong>3D preview</strong> to see the surfaces in space. Drag to orbit, Shift-drag or right-drag to pan, and scroll or pinch to zoom. Fit room and the camera presets help you inspect the scene. Click a wall, floor, or element to select its sidebar controls.</p>
-        <p>Open <strong>3D placement</strong> inside each wall section to choose a vertical wall or horizontal floor, then set its X/Y ground position, Z elevation, and angle around Z. The floor lies on the XY plane. These positions are separate from the unfolded 2D drawing. Older plans receive suggested positions; verify and edit them to assemble your actual room. Elements start as simple boxes: their <strong>3D depth / floor height</strong> sets the projection from a wall or height above a floor.</p>
-        <p>The 3D materials use the same pattern offsets, rotation, grout, textures, and pattern regions as the 2D view. YAML preserves all 3D placement and depth values. PNG export continues to export the 2D drawing.</p>
-<p><strong>3D light placement</strong> lets you add and remove directional lights and edit each light’s color, intensity, and Position and Aim coordinates in millimeters. Default and newly added lights aim at the floor’s center in world coordinates. Intensity starts at 2.5; set it to 0 to turn off a directional light. Turn on <strong>Light sources</strong> in the 3D toolbar to show gold source markers, turquoise aim markers, and direction helpers. Fit room frames the room while preserving the current viewing angle. The Perspective, Top, and Front buttons select a new viewing angle. All light settings are saved with the plan; the soft hemisphere lighting stays active.</p>
-        <h3>YAML source</h3>
-        <p>Turn on <strong>YAML source</strong> to edit the plan as YAML, then choose <strong>Apply YAML</strong> to apply the changes. <strong>Side by side</strong> shows the preview and source together. YAML source mode and side-by-side mode are mutually exclusive toggles.</p>
-        <p>The YAML stores the plan name, patterns, walls, outlines, and elements. Canvas bounds are derived automatically from the plan geometry and therefore are not stored as a <code>canvas</code> block. Walls without elements omit the <code>objects</code> property.</p>
-
-        <h3>Import and export</h3>
-        <ul>
-          <li><strong>Upload plan</strong> imports YAML or SVG.</li>
-          <li><strong>Download YAML</strong> saves the editable plan data.</li>
-          <li><strong>Download SVG</strong> exports the drawing as vector artwork.</li>
-          <li><strong>Download PNG</strong> exports the current rendered canvas as an image.</li>
-          <li><strong>Copy source</strong> copies the current YAML source to the clipboard.</li>
-        </ul>
-
-        <h3>Reset and action log</h3>
-        <p><strong>Reset all</strong> restores the plan to its established reset point. Individual wall and element reset controls restore those items to their corresponding baseline. The Action log below the editor records semantic editing actions and can be cleared without changing the plan.</p>
-
-        <h3>Plan coordinates</h3>
-        <p>Editor dimensions and positions are expressed in millimeters. Canvas bounds are recalculated from the current geometry, so moving or changing the plan does not require manually maintaining viewport dimensions in YAML.</p>
-      </article>
+      <article class="help-dialog-content" id="help-dialog-content"></article>
     </div>
   </dialog>
   <dialog class="help-dialog" id="dev-help-dialog" aria-labelledby="dev-help-dialog-title">
@@ -140,31 +100,7 @@
         <h2 id="dev-help-dialog-title">Tiling plan editor — Developer documentation</h2>
         <button class="help-dialog-close" id="close-dev-help" type="button" aria-label="Close developer documentation" title="Close">×</button>
       </header>
-      <article class="help-dialog-content">
-        <h3>Architecture</h3>
-        <p>The editor is a TypeScript browser application built with Vite. <code>PlanService</code> owns the authoritative normalized plan data and emits semantic change events. <code>EditorState</code> contains transient UI state. <code>CanvasViewport</code>, <code>CanvasRenderer</code>, and <code>HitTester</code> handle viewport conversion, Canvas 2D rendering, and plan-space picking. <code>ControlPanelView</code> renders the sidebar with Preact. Signals expose the effective persistent or transient plan to both preview renderers and YAML. <code>YamlCodec</code> and <code>SvgCodec</code> are serialization boundaries, while <code>EditorApp</code> coordinates document lifecycle and model changes.</p>
-        <h3>Plan data</h3>
-        <p>The runtime model is plain JavaScript data. A plan contains a name, units, patterns, and walls. Walls contain position, rotation, an outline, and optionally objects. Objects are wall-local rectangles. Pattern dimensions are derived from <code>tileWidth + borderSize</code> and <code>tileHeight + borderSize</code>.</p>
-        <p>Canvas bounds are derived at runtime from geometry and are not part of the YAML contract. Legacy YAML canvas blocks are accepted and ignored. Empty wall object collections are omitted from YAML.</p>
-        <h3>Mutation flow</h3>
-        <p>Persistent edits go through <code>PlanService</code>. Signals drive rendering and YAML synchronization. Semantic operation events drive the action log and baseline bookkeeping. Drag previews update only the transient plan and commit once on release.</p>
-        <h3>Canvas interaction</h3>
-        <p>Pointer coordinates are converted through the viewport into plan space. Dragging uses a transient plain-data snapshot and commits the final whole-unit position to <code>PlanService</code> on pointer release. Object movement is converted into wall-local coordinates and constrained to the wall polygon. Pan, zoom, fit, and pinch are independent of serialization.</p>
-        <h3>Rendering</h3>
-        <p>The preview is rendered directly with Canvas 2D. Tile patterns are clipped to wall outlines. Textures replace tile color when present, and optional deterministic quarter-turn rotation is derived from tile-grid coordinates.</p>
-        <h3>YAML codec</h3>
-        <p><code>YamlCodec</code> is an import/export boundary. YAML is the prefered way of sharing a model.
-        <h3>SVG codec</h3>
-        <p><code>SvgCodec</code> is an import/export boundary. Export derives its view box from current geometry.</p>
-        <h3>Controls and selection</h3>
-        <p>The sidebar uses native disclosure sections. Selection coordinates canvas state with the matching wall or object controls. Name editing uses temporary text inputs; Enter commits, Escape cancels, and edit-control pointer events are isolated from the surrounding disclosure summary. Reordering is constrained to items at the same structural level.</p>
-        <h3>Reset behavior</h3>
-        <p>Loading a template or uploaded document establishes the reset baseline. Wall and object snapshots preserve their loaded state. Applying YAML changes the current document without redefining that baseline. Newly added items establish their own initial reset state.</p>
-        <h3>Document lifecycle</h3>
-        <p>Startup creates an empty document. The integrated <strong>Tiling Bathroom</strong> YAML is loaded only when requested. Upload accepts YAML or SVG. Downloads are generated from the current authoritative plan as YAML, SVG, or rendered PNG.</p>
-        <h3>Extending the editor</h3>
-        <p>For persistent properties, add normalization and mutation support in <code>PlanService</code>, then update YAML and SVG serialization only when the property belongs to those interchange contracts. Rendering-only state should stay outside the persisted model. Controls should call model mutations rather than forcing canvas redraws directly.</p>
-      </article>
+      <article class="help-dialog-content" id="dev-help-dialog-content"></article>
     </div>
   </dialog>
   <script type="module" src="./src/editor.ts"></script>

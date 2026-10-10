@@ -43,12 +43,23 @@ const { JSDOM, VirtualConsole } = require('jsdom');
         window.ResizeObserver = class { observe() {} };
         window.Path2D = class { moveTo() {} lineTo() {} closePath() {} rect() {} };
         window.structuredClone = structuredClone;
+        window.HTMLDialogElement.prototype.showModal = function () { this.open = true; };
+        window.HTMLDialogElement.prototype.close = function () { this.open = false; };
         window.HTMLCanvasElement.prototype.getContext = () => new Proxy({}, { get: () => () => {} });
         window.HTMLElement.prototype.scrollIntoView = () => {};
         window.HTMLElement.prototype.getBoundingClientRect = () => ({ left: 0, top: 0, width: 900, height: 600 });
       },
     });
     dom.window.eval(bundle);
+    for (const [button, dialog, content, heading] of [
+      ['open-help', 'help-dialog', 'help-dialog-content', 'Getting started'],
+      ['open-dev-help', 'dev-help-dialog', 'dev-help-dialog-content', 'Architecture'],
+    ]) {
+      dom.window.document.getElementById(button).click();
+      assert(dom.window.document.getElementById(dialog).open);
+      assert.equal(dom.window.document.getElementById(content).querySelector('h2').textContent, heading);
+      dom.window.document.getElementById(dialog).close();
+    }
     dom.window.document.getElementById('load-template').click();
     await new Promise(resolve => setTimeout(resolve, 160));
     assert.equal(dom.window.document.querySelectorAll('.wall-section').length, 7);

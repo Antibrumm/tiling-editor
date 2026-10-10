@@ -45,15 +45,18 @@ Open http://localhost:4173. Preview serves the existing build; rebuild after sou
 | `src/dom.ts` | Typed required DOM elements and Canvas context access |
 | `tsconfig.json` | Strict TypeScript checking without emitting files |
 | `src/styles.css` | Editor styles |
-| `index.html` | Page structure, controls, and documentation |
+| `index.html` | Page structure, controls, and empty documentation dialogs |
+| `docs/user.md`, `docs/developer.md` | User and developer documentation in Markdown |
+| `src/ui/` | Documentation dialog wiring and sanitized Markdown rendering |
 | `src/assets/base-model.yaml` | Starter plan imported as text through Vite |
 | `vite.config.ts` | Preact integration, asset builds, development server, and local build preview |
 | `tests/pattern.test.cjs` | Pattern rotation defaults, edits, and YAML persistence |
 | `tests/model.test.cjs` | Model validation, persistence, placement math, face visibility, element layering, and light behavior |
 | `tests/ui.test.cjs` | Bundled startup, control interaction, reactive scene updates, camera fitting, and save round trips |
-| `tests/build.test.cjs` | Built application startup and asset serving through Vite preview |
+| `tests/build.test.cjs` | Built application startup, documentation, and asset serving through Vite preview |
+| `tests/markdown.test.cjs` | Markdown formatting and HTML sanitization |
 
-Edit these source files directly. The earlier Python migration/patch scripts are no longer part of the build. Application source is TypeScript with strict checking. The model, codecs, geometry, and 3D/pattern rendering are separate modules; the Preact controls, Canvas renderer, and pointer controller currently remain in the editor entry point. Vite handles development and production builds. Regression test runners remain JavaScript.
+Edit these source files directly. The earlier Python migration/patch scripts are no longer part of the build. Application source is TypeScript with strict checking. The model, codecs, geometry, and 3D/pattern rendering are separate modules; the Preact controls, Canvas renderer, and pointer controller currently remain in the editor entry point. Documentation buttons render the Markdown files imported through Vite using Marked and DOMPurify. Edit `docs/user.md` or `docs/developer.md` to update their content. Vite handles development and production builds. Regression test runners remain JavaScript.
 
 ## Architecture and testing
 
