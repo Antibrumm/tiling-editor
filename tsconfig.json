@@ -11,9 +11,12 @@
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "types": []
+    "types": [],
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact"
   },
   "include": [
-    "src"
+    "src",
+    "vite.config.ts"
   ]
 }

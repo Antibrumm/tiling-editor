@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Tiling plan · Canvas editor</title>
-  <link rel="stylesheet" href="./src/styles.css">
 </head>
 <body>
   <div class="app">
@@ -143,7 +142,7 @@
       </header>
       <article class="help-dialog-content">
         <h3>Architecture</h3>
-        <p>The editor is a self-contained HTML application. <code>PlanService</code> owns the authoritative normalized plan data and emits semantic change events. <code>EditorState</code> contains transient UI state. <code>CanvasViewport</code>, <code>CanvasRenderer</code>, and <code>HitTester</code> handle viewport conversion, Canvas 2D rendering, and plan-space picking. <code>ControlPanelView</code> renders the sidebar with Preact. Signals expose the effective persistent or transient plan to both preview renderers and YAML. <code>YamlCodec</code> and <code>SvgCodec</code> are serialization boundaries, while <code>EditorApp</code> coordinates document lifecycle and model changes.</p>
+        <p>The editor is a TypeScript browser application built with Vite. <code>PlanService</code> owns the authoritative normalized plan data and emits semantic change events. <code>EditorState</code> contains transient UI state. <code>CanvasViewport</code>, <code>CanvasRenderer</code>, and <code>HitTester</code> handle viewport conversion, Canvas 2D rendering, and plan-space picking. <code>ControlPanelView</code> renders the sidebar with Preact. Signals expose the effective persistent or transient plan to both preview renderers and YAML. <code>YamlCodec</code> and <code>SvgCodec</code> are serialization boundaries, while <code>EditorApp</code> coordinates document lifecycle and model changes.</p>
         <h3>Plan data</h3>
         <p>The runtime model is plain JavaScript data. A plan contains a name, units, patterns, and walls. Walls contain position, rotation, an outline, and optionally objects. Objects are wall-local rectangles. Pattern dimensions are derived from <code>tileWidth + borderSize</code> and <code>tileHeight + borderSize</code>.</p>
         <p>Canvas bounds are derived at runtime from geometry and are not part of the YAML contract. Legacy YAML canvas blocks are accepted and ignored. Empty wall object collections are omitted from YAML.</p>

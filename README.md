@@ -4,14 +4,14 @@ A Preact and Signals application for editing tiling plans in 2D and previewing t
 
 ## Start
 
-Requires Node.js 20 or newer and npm.
+Requires Node.js 20.19+ on the 20.x release line, or Node.js 22.12+ and npm.
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Open http://localhost:5173. Changes to the HTML or any file under `src/` rebuild the preview; refresh your browser to see them. Set `PORT` to change the port. The server binds to your local computer.
+Open http://localhost:5173. Vite watches source files and updates the browser when they change. Use `npm run dev -- --port 5174` to change the port. The server binds to your local computer.
 
 ## Build and verify
 
@@ -19,11 +19,18 @@ Open http://localhost:5173. Changes to the HTML or any file under `src/` rebuild
 npm run typecheck
 npm test
 npm run build
-# Or run all checks:
+# Or run all checks, including the built app:
 npm run check
 ```
 
-The build produces `dist/index.html`, a self-contained HTML file with bundled JavaScript, CSS, and dependencies. Open it directly in a browser or host it on a static server. A built copy is included in the ZIP, so you can try the editor before installing dependencies. Real 3D rendering requires a browser with WebGL 2.
+The build produces a static application in `dist/`, with `index.html` and separate JavaScript and CSS assets. Run it locally through the preview server:
+
+```sh
+npm run build
+npm run preview
+```
+
+Open http://localhost:4173. Preview serves the existing build; rebuild after source changes. Use `npm run preview -- --port 4174` to change the port. You can also serve `dist/` with another static HTTP server. Real 3D rendering requires a browser with WebGL 2.
 
 ## Source layout
 
@@ -39,19 +46,19 @@ The build produces `dist/index.html`, a self-contained HTML file with bundled Ja
 | `tsconfig.json` | Strict TypeScript checking without emitting files |
 | `src/styles.css` | Editor styles |
 | `index.html` | Page structure, controls, documentation, and starter YAML template |
-| `scripts/build.mjs` | Bundles the application and creates the standalone HTML |
-| `scripts/dev.mjs` | Local server and source watching |
+| `vite.config.ts` | Preact integration, asset builds, development server, and local build preview |
 | `tests/pattern.test.cjs` | Pattern rotation defaults, edits, and YAML persistence |
 | `tests/model.test.cjs` | Model validation, persistence, placement math, face visibility, element layering, and light behavior |
 | `tests/ui.test.cjs` | Bundled startup, control interaction, reactive scene updates, camera fitting, and save round trips |
+| `tests/build.test.cjs` | Built application startup and asset serving through Vite preview |
 
-Edit these source files directly. The earlier Python migration/patch scripts are no longer part of the build. Application source is TypeScript with strict checking. The model, codecs, geometry, and 3D/pattern rendering are separate modules; the Preact controls, Canvas renderer, and pointer controller currently remain in the editor entry point. Node build scripts and regression test runners remain JavaScript.
+Edit these source files directly. The earlier Python migration/patch scripts are no longer part of the build. Application source is TypeScript with strict checking. The model, codecs, geometry, and 3D/pattern rendering are separate modules; the Preact controls, Canvas renderer, and pointer controller currently remain in the editor entry point. Vite handles development and production builds. Regression test runners remain JavaScript.
 
 ## Architecture and testing
 
 `PlanService` owns typed plain plan data and persistent operations. An injected publication callback keeps it independent of editor globals. Preact renders the sidebar, Signals publish state snapshots, and semantic change events support the history descriptions and reset behavior. Canvas handles the 2D view. `ThreePreview` owns the Three.js scene and cached geometry; the floor is on XY and Z is height. Coordinates in plan files use millimeters; Three.js coordinates use meters.
 
-Model tests load the actual TypeScript modules through an in-memory esbuild bundle. UI tests instrument the TypeScript entry point, bundle it with those modules, and run it in jsdom. They use real Three.js geometry, materials, and orbit controls with a mocked WebGL renderer. The tests verify behavior and geometry but do not validate GPU output; use a real browser to visually review the preview, texture lighting, and pointer interactions.
+Model tests load the actual TypeScript modules through an in-memory esbuild bundle. UI tests instrument the TypeScript entry point, bundle it with those modules, and run it in jsdom. They use real Three.js geometry, materials, and orbit controls with a mocked WebGL renderer. The build test serves production assets with Vite preview and checks startup and template loading in jsdom. Run it separately with `npm run test:build` after building. The tests verify behavior and geometry but do not validate GPU output; use a real browser to visually review the preview, texture lighting, and pointer interactions.
 
 ## Git
 
