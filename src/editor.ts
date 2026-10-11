@@ -180,8 +180,10 @@ function init() {
   const ctx = get2DContext(canvas);
   const showLabels = getElement('show-labels');
   const showDimensions = getElement('show-dimensions');
+  const showTileCounts = getElement('show-tile-counts');
   showLabels.addEventListener('change', () => viewController.drawCanvas());
   showDimensions.addEventListener('change', () => viewController.drawCanvas());
+  showTileCounts.addEventListener('change', () => viewController.drawCanvas());
   const zoomLevel = getElement('zoom-level');
   const EMPTY_VIEW_BOX: ViewBox = [0, 0, 3000, 3000];
   let baseBox: ViewBox = [...EMPTY_VIEW_BOX];
@@ -352,6 +354,7 @@ function init() {
     paintSurfacePattern,
     showLabels,
     showDimensions,
+    showTileCounts,
     editorState,
   });
   const yamlSourceEditor: YamlSourceEditor = new YamlSourceEditor({

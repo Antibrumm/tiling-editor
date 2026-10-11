@@ -16,6 +16,8 @@ The sidebar contains the editable tile patterns, walls, and wall elements. Expan
 
 **Labels** and **Dimensions** under Display options control the annotations shown on the canvas.
 
+**Tile counts** shows the number of tiles needed on each wall or floor in the 2D view, with a breakdown by pattern when several patterns are used. Every full or partial tile counts as one; offcuts are never reused. Counts follow the polygon, inset, grout, pattern offsets and rotation, and visible pattern regions. Overlapping regions replace the pattern below them. Elements overlay the tiling and do not subtract tiles. Counts update when the plan changes and are independent of zoom. Very large tile layouts show an unavailable message instead of blocking the editor. These counts do not include extra tiles for breakage or spare stock.
+
 Each wall has a **Pattern inset (mm)** setting. Set it to `5` to leave a 5 mm untiled band inside every polygon edge, including sloped edges and concave corners. The band shows the outline fill color and follows the polygon with sharp corners. Pattern X/Y offsets are relative to the inset: with a 5 mm inset, offsets of `0, 0` start the grid at `5, 5` in wall-local coordinates, before pattern rotation. This also applies to pattern regions. The inset limits both the main pattern and pattern regions in 2D, PNG exports, and 3D. `0` tiles to the edge; older plans default to `0`. YAML and SVG preserve the setting. An inset wider than the available surface leaves that area untiled.
 
 ## Tile patterns

@@ -62,6 +62,7 @@ const html = fs
   );
 const errors = [],
   vc = new VirtualConsole();
+const paintedTexts = [];
 vc.on('jsdomError', (e) => errors.push(e.message));
 const dom = new JSDOM(html, {
   runScripts: 'dangerously',
@@ -86,7 +87,11 @@ const dom = new JSDOM(html, {
     window.HTMLDialogElement.prototype.close = function () {
       this.open = false;
     };
-    window.HTMLCanvasElement.prototype.getContext = () => new Proxy({}, { get: () => () => {} });
+    window.HTMLCanvasElement.prototype.getContext = () =>
+      new Proxy(
+        {},
+        { get: (_, key) => (key === 'fillText' ? (text) => paintedTexts.push(text) : () => {}) },
+      );
     window.HTMLElement.prototype.scrollIntoView = () => {};
     window.HTMLElement.prototype.getBoundingClientRect = () => ({
       left: 0,
@@ -153,6 +158,23 @@ test('editor startup, controls, selection, and reactive 3D preview', async () =>
   document.getElementById('load-template').click();
   await wait();
   assert.equal(document.querySelectorAll('.wall-section').length, 7);
+  assert(
+    paintedTexts.some((text) => /: [\d,]+ tiles$/.test(text)),
+    'Surface tile counts are painted',
+  );
+  const tileCounts = document.getElementById('show-tile-counts');
+  paintedTexts.length = 0;
+  tileCounts.checked = false;
+  tileCounts.dispatchEvent(new window.Event('change'));
+  await wait();
+  assert(!paintedTexts.some((text) => / tiles$/.test(text)), 'Tile counts can be hidden');
+  tileCounts.checked = true;
+  tileCounts.dispatchEvent(new window.Event('change'));
+  await wait();
+  assert(
+    paintedTexts.some((text) => / tiles$/.test(text)),
+    'Tile counts can be restored',
+  );
   const toggle = document.getElementById('three-toggle');
   toggle.checked = true;
   toggle.dispatchEvent(new window.Event('change'));
@@ -413,10 +435,11 @@ test('editor startup, controls, selection, and reactive 3D preview', async () =>
   toggle.dispatchEvent(new window.Event('change'));
   await wait();
   const previousFloor = test.threePreview.entries.get('floor');
-  insetInput.value = '5';
+  const updatedInset = test.planService.wall('floor').outline.patternInset + 5;
+  insetInput.value = String(updatedInset);
   insetInput.dispatchEvent(new window.Event('input', { bubbles: true }));
   await wait();
-  assert.equal(test.planService.wall('floor').outline.patternInset, 5);
+  assert.equal(test.planService.wall('floor').outline.patternInset, updatedInset);
   assert.notEqual(
     test.threePreview.entries.get('floor'),
     previousFloor,

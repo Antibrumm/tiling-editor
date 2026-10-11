@@ -40,6 +40,7 @@ interface EditorElements {
   reset: HTMLButtonElement;
   'show-labels': HTMLInputElement;
   'show-dimensions': HTMLInputElement;
+  'show-tile-counts': HTMLInputElement;
   'tile-controls': HTMLElement;
   'walls-section': HTMLDetailsElement;
   'wall-controls': HTMLElement;

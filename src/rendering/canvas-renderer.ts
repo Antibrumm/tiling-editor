@@ -8,6 +8,7 @@ import type { ViewState } from '../ui/types';
 import { EditorState } from '../ui/editor-state';
 
 import { CanvasViewport } from '../ui/canvas-viewport';
+import { TileCounter } from '../model/tile-counter';
 
 interface CanvasRendererDependencies {
   stage: HTMLElement;
@@ -26,6 +27,7 @@ interface CanvasRendererDependencies {
   ) => void;
   showLabels: HTMLInputElement;
   showDimensions: HTMLInputElement;
+  showTileCounts: HTMLInputElement;
   editorState: EditorState;
 }
 /**
@@ -35,6 +37,7 @@ interface CanvasRendererDependencies {
  * painting changes canvas output without mutating persistent plan data.
  */
 export class CanvasRenderer {
+  private tileCounter = new TileCounter();
   constructor(private dependencies: CanvasRendererDependencies) {
     this.paint = this.paint.bind(this);
   }
@@ -204,6 +207,34 @@ export class CanvasRenderer {
     }
 
     for (const wall of plan.walls) {
+      if (this.dependencies.showTileCounts.checked && wall.outline.points.length) {
+        const xs = wall.outline.points.map(([x]) => x);
+        const ys = wall.outline.points.map(([, y]) => y);
+        const anchor = localToScreen(
+          wall,
+          (Math.min(...xs) + Math.max(...xs)) / 2,
+          Math.max(...ys),
+        );
+        const count = this.tileCounter.count(wall, plan.patterns);
+        paintText(
+          `${wall.name}: ${count ? `${count.total.toLocaleString()} tiles` : 'tile count unavailable (plan too large)'}`,
+          anchor.x,
+          anchor.y + 18,
+          12,
+          700,
+        );
+        if (count && count.patterns.length > 1) {
+          count.patterns.forEach((pattern, index) => {
+            paintText(
+              `${pattern.name}: ${pattern.count.toLocaleString()}`,
+              anchor.x,
+              anchor.y + 34 + index * 14,
+              10,
+              600,
+            );
+          });
+        }
+      }
       wall.objects.forEach((object, index) => {
         const center = localToScreen(
           wall,
