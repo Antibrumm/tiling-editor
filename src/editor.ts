@@ -44,6 +44,7 @@ function init() {
   const planSignal = signal(planService.snapshot());
   const interactionPlanSignal = signal<Plan | null>(null);
   const lightVisibleSignal = signal(false);
+  const threePreviewVisibleSignal = signal(false);
   const yamlEditingSignal = signal(false);
   const selectedWallIdSignal = signal<string | null>(null);
   const selectedLightIdSignal = signal<string | null>(null);
@@ -101,6 +102,7 @@ function init() {
     uiFeedback.message(`${baseline.name || 'Element'} reset.`);
   };
   const viewController: ViewController = new ViewController({
+    threePreviewVisibleSignal,
     get splitToggle() {
       return splitToggle;
     },
@@ -201,6 +203,7 @@ function init() {
   getElement('clear-action-log').addEventListener('click', () => actionConsole.clear());
   actionConsole.log('Editor ready — no template loaded.');
   const controlPanel = new ControlPanel({
+    threePreviewVisibleSignal,
     planService,
     uiFeedback,
     selectedWallIdSignal,

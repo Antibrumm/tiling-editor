@@ -1,3 +1,4 @@
+import { PatternRegionGeometry } from '../model/pattern-region-geometry';
 import type { Plan, Wall, Pattern, Point, Bounds } from '../model/types';
 
 import type { PatternSurface } from '../rendering/pattern-painter';
@@ -37,6 +38,7 @@ interface CanvasRendererDependencies {
  * painting changes canvas output without mutating persistent plan data.
  */
 export class CanvasRenderer {
+  private regionGeometry = new PatternRegionGeometry();
   private tileCounter = new TileCounter();
   constructor(private dependencies: CanvasRendererDependencies) {
     this.paint = this.paint.bind(this);
@@ -127,8 +129,13 @@ export class CanvasRenderer {
       this.dependencies.ctx.translate(wall.x, wall.y);
       if (angle) this.dependencies.ctx.rotate(angle);
       const path = polygonPath(wall.outline.points);
-      drawPattern(path, wall.outline, visibleBoundsInWall(wall.x, wall.y, angle));
-      for (const region of wall.patternRegions || []) {
+      drawPattern(
+        path,
+        { ...wall.outline, pattern: '', patternX: 0, patternY: 0, patternRotation: 0 },
+        visibleBoundsInWall(wall.x, wall.y, angle),
+      );
+      for (const storedRegion of wall.patternRegions || []) {
+        const region = this.regionGeometry.resolve(wall, storedRegion);
         if (!(region.width > 0 && region.height > 0) || !region.pattern) continue;
         const regionPath = new Path2D();
         regionPath.rect(region.x, region.y, region.width, region.height);

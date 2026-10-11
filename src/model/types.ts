@@ -27,6 +27,7 @@ export interface Pattern {
   randomTextureRotation: boolean;
 }
 export interface PatternRegion {
+  fullWall: boolean;
   x: number;
   y: number;
   width: number;
@@ -55,10 +56,6 @@ export interface Placement {
 export interface Outline {
   patternInset: number;
   points: Point[];
-  pattern: string;
-  patternX: number;
-  patternY: number;
-  patternRotation: number;
   fill: string;
   stroke: string;
   strokeWidth: number;
@@ -109,7 +106,14 @@ export type PatternInput = Input<Pattern> & {
   fill?: string;
   stroke?: string;
 };
-export type OutlineInput = Omit<Input<Outline>, 'points'> & { points?: (Point | Position)[] };
+export type OutlineInput = Omit<Input<Outline>, 'points'> & {
+  points?: (Point | Position)[];
+  /** Legacy outline tiling is migrated to a full-wall region on import. */
+  pattern?: string;
+  patternX?: number | string;
+  patternY?: number | string;
+  patternRotation?: number | string;
+};
 export type WallInput = Omit<
   Input<Wall>,
   'outline' | 'objects' | 'patternRegions' | 'placement3d'

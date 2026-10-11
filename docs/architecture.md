@@ -215,6 +215,8 @@ The YAML codec implements the project's limited indentation-sensitive format. Th
 
 ## 6. Rendering and coordinate conventions
 
+All tiling belongs to pattern regions; outlines own geometry, styling, and inset. `PatternRegionGeometry` derives bounds for `fullWall` regions for Canvas, Three.js, SVG, and tile counts. Normalization migrates legacy outline patterns beneath existing regions, and exports persist only region tiling.
+
 Both previews use the same effective plan and the same pattern-painting function created by `createPatternPainter()`. Its texture image cache belongs to that painter instance. Image-load callbacks request a Canvas repaint, increment the 3D texture revision, and request a scene update.
 
 ```mermaid

@@ -1,3 +1,4 @@
+import { PatternRegionGeometry } from '../model/pattern-region-geometry';
 import { PlanNormalizer } from '../model/plan-normalizer';
 import type { Plan, Point, PlanInput, WallInput } from '../model/types';
 import { number } from './format';
@@ -12,6 +13,7 @@ import { PerimeterClipper } from '../rendering/perimeter-clipper';
  * Export derives the view box from geometry; validateRoundTrip compares supported fields.
  */
 export class SvgCodec {
+  private regionGeometry = new PatternRegionGeometry();
   constructor(
     private normalizer = new PlanNormalizer(),
     private transform = new Transform2D(),
@@ -294,28 +296,11 @@ export class SvgCodec {
       poly.setAttribute('class', 'outline');
       poly.setAttribute('data-pattern-inset', number(w.outline.patternInset));
       poly.setAttribute('data-base-fill', w.outline.fill);
-      poly.setAttribute('data-pattern-x', number(w.outline.patternX));
-      poly.setAttribute('data-pattern-y', number(w.outline.patternY));
-      poly.setAttribute('data-pattern-rotation', number(w.outline.patternRotation));
       poly.setAttribute(
         'points',
         w.outline.points.map((p) => `${number(p[0])},${number(p[1])}`).join(' '),
       );
-      if (w.outline.pattern) {
-        let pid = `${w.name}-tile-pattern`,
-          n = 2;
-        while ([...defs.querySelectorAll('pattern[id]')].some((p) => p.id === pid))
-          pid = `${w.name}-tile-pattern-${n++}`;
-        const wrap = doc.createElementNS(ns, 'pattern');
-        wrap.id = pid;
-        wrap.setAttribute('href', `#${w.outline.pattern}`);
-        wrap.setAttribute(
-          'patternTransform',
-          `translate(${number(w.outline.patternX + w.outline.patternInset)} ${number(w.outline.patternY + w.outline.patternInset)}) rotate(${number(w.outline.patternRotation || 0)})`,
-        );
-        defs.append(wrap);
-        poly.setAttribute('fill', `url(#${pid})`);
-      } else poly.setAttribute('fill', w.outline.fill || 'white');
+      poly.setAttribute('fill', w.outline.fill || 'white');
       if (w.outline.stroke) poly.setAttribute('stroke', w.outline.stroke);
       poly.setAttribute('stroke-width', number(w.outline.strokeWidth));
       g.append(poly);
@@ -347,14 +332,6 @@ export class SvgCodec {
         mask.append(shape);
         defs.append(mask);
         patterned.setAttribute('mask', `url(#${maskId})`);
-        if (w.outline.pattern) {
-          const tiles = poly.cloneNode(true) as Element;
-          tiles.removeAttribute('class');
-          tiles.removeAttribute('stroke');
-          patterned.append(tiles);
-          poly.setAttribute('data-pattern-ref', poly.getAttribute('fill')!.slice(5, -1));
-          poly.setAttribute('fill', w.outline.fill || 'white');
-        }
       }
       const clip = doc.createElementNS(ns, 'clipPath');
       let clipId = 'surface-clip-' + plan.walls.indexOf(w);
@@ -370,7 +347,8 @@ export class SvgCodec {
       clip.append(clipShape);
       defs.append(clip);
       patterned.setAttribute('clip-path', `url(#${clipId})`);
-      for (const [index, region] of w.patternRegions.entries()) {
+      for (const [index, storedRegion] of w.patternRegions.entries()) {
+        const region = this.regionGeometry.resolve(w, storedRegion);
         if (!region.pattern || !(region.width > 0 && region.height > 0)) continue;
         const wrap = doc.createElementNS(ns, 'pattern');
         let id = `${clipId}-region-${index}`;

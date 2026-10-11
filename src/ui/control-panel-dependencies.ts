@@ -17,6 +17,7 @@ export interface ControlPanelDependencies {
   resetObjectToLoadedState: (wallName: string, objectIndex: number) => void;
   scenePlacement: ScenePlacement;
   effectivePlan: ReadonlySignal<Plan>;
+  threePreviewVisibleSignal: ReadonlySignal<boolean>;
   resetWallToLoadedState: (wallName: string) => void;
   lightControls: HTMLElement;
   tileControls: HTMLElement;

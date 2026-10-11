@@ -1,6 +1,6 @@
 import type { Wall, Pattern } from '../../model/types';
 
-import { h } from 'preact';
+import { h, type JSX } from 'preact';
 
 import type { ControlPanelDependencies } from '../control-panel-dependencies';
 import { NumberField } from './number-field';
@@ -20,11 +20,33 @@ export const PatternRegions = ({
     wall.patternRegions.map((r, i) =>
       h(
         Card,
-        { context, key: i, title: `Pattern region ${i + 1}`, defaultOpen: true },
+        {
+          context,
+          key: i,
+          title: r.fullWall ? `Pattern region ${i + 1} · Full wall` : `Pattern region ${i + 1}`,
+          defaultOpen: true,
+        },
         h(
           'div',
           { class: 'coords' },
-          ...(['x', 'y', 'width', 'height'] as const).map((key) =>
+          h(
+            'label',
+            { class: 'wide' },
+            h('input', {
+              type: 'checkbox',
+              checked: r.fullWall,
+              disabled: !r.fullWall && wall.patternRegions.some((region) => region.fullWall),
+              onChange: (event: JSX.TargetedEvent<HTMLInputElement, Event>) =>
+                context.planService.setPatternRegion(
+                  wall.name,
+                  i,
+                  'fullWall',
+                  event.currentTarget.checked,
+                ),
+            }),
+            ' Full wall (follows outline)',
+          ),
+          ...(!r.fullWall ? (['x', 'y', 'width', 'height'] as const) : []).map((key) =>
             h(NumberField, {
               key,
               label: key[0].toUpperCase() + key.slice(1),
@@ -70,6 +92,18 @@ export const PatternRegions = ({
         ),
       ),
     ),
+    !wall.patternRegions.some((region) => region.fullWall) &&
+      h(
+        Button,
+        {
+          onClick: () =>
+            context.planService.addPatternRegion(wall.name, {
+              fullWall: true,
+              pattern: patterns[0]?.name || '',
+            }),
+        },
+        'Add full-wall pattern',
+      ),
     h(
       Button,
       {

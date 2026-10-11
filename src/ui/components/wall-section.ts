@@ -10,7 +10,6 @@ import { useEffect, useRef } from 'preact/hooks';
 import type { ControlPanelDependencies } from '../control-panel-dependencies';
 import { NumberField } from './number-field';
 import { Button } from './button';
-import { PatternSelect } from './pattern-select';
 import { EditableName } from './editable-name';
 import { ReorderHandle } from './reorder-handle';
 import { Card } from './card';
@@ -99,42 +98,6 @@ export function WallSection({
                 ),
             }),
           ),
-          h(PatternSelect, {
-            value: wall.outline.pattern,
-            patterns,
-            onChange: (v) => context.planService.setOutlineValue(wall.name, 'pattern', v),
-          }),
-          h(NumberField, {
-            label: 'Pattern inset (mm)',
-            value: wall.outline.patternInset,
-            min: 0,
-            onInput: (v) => context.planService.setOutlineValue(wall.name, 'patternInset', v),
-          }),
-          ...(['patternX', 'patternY'] as const).map((key) =>
-            h(NumberField, {
-              key,
-              label: key === 'patternX' ? 'Pattern X' : 'Pattern Y',
-              value: wall.outline[key],
-              min: -6000,
-              max: 6000,
-              range: true,
-              onInput: (v) =>
-                context.planService.setPatternTranslation(
-                  wall.name,
-                  key === 'patternX' ? v : wall.outline.patternX,
-                  key === 'patternY' ? v : wall.outline.patternY,
-                ),
-            }),
-          ),
-          h(NumberField, {
-            label: 'Pattern rotation',
-            value: wall.outline.patternRotation,
-            min: 0,
-            max: 359,
-            range: true,
-            unit: '°',
-            onInput: (v) => context.planService.setOutlineValue(wall.name, 'patternRotation', v),
-          }),
         ),
       ),
       h(
@@ -143,6 +106,12 @@ export function WallSection({
         h(
           'div',
           { class: 'coords' },
+          h(NumberField, {
+            label: 'Pattern inset (mm)',
+            value: wall.outline.patternInset,
+            min: 0,
+            onInput: (v) => context.planService.setOutlineValue(wall.name, 'patternInset', v),
+          }),
           h(
             'label',
             { class: 'wide' },
@@ -163,7 +132,6 @@ export function WallSection({
           ),
         ),
       ),
-      h(PlacementControls, { context, wall, index }),
       h(PatternRegions, { context, wall, patterns }),
       wall.objects.map((o, i) => h(ObjectCard, { context, key: i, wall, o, index: i })),
       h(
@@ -189,6 +157,7 @@ export function WallSection({
         },
         'Rotate 90°',
       ),
+      context.threePreviewVisibleSignal.value && h(PlacementControls, { context, wall, index }),
     ),
   );
 }

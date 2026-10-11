@@ -59,7 +59,7 @@ Dependency objects in the editor sometimes use getters so controllers can refer 
 
 ## Plan data
 
-The runtime model is plain JavaScript data. A plan contains a name, units, patterns, and walls. Walls contain position, rotation, an outline, and optionally objects. Objects are wall-local rectangles. Pattern dimensions are derived from `tileWidth + borderSize` and `tileHeight + borderSize`.
+The runtime model is plain JavaScript data. A plan contains a name, units, patterns, and walls. Walls contain position, rotation, an outline, pattern regions, and optionally objects. The outline owns the boundary, fill, stroke, and inset. Regions own all tiling settings; `fullWall: true` derives coverage from the current outline bounds through `PatternRegionGeometry`. Legacy outline tiling migrates to the first full-wall region during normalization. Objects are wall-local rectangles. Pattern dimensions are derived from `tileWidth + borderSize` and `tileHeight + borderSize`.
 
 Canvas bounds are derived at runtime from geometry and are not part of the YAML contract. Legacy YAML canvas blocks are accepted and ignored. Empty wall object collections are omitted from YAML.
 

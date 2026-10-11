@@ -1,3 +1,4 @@
+import { PatternRegionGeometry } from './pattern-region-geometry';
 import { ShapeUtils } from 'three/src/extras/ShapeUtils.js';
 import { Vector2 } from 'three/src/math/Vector2.js';
 import type { Pattern, Point, Wall } from './types';
@@ -8,8 +9,9 @@ export interface TileCount {
   patterns: { name: string; count: number }[];
 }
 
-/** Counts distinct tile rectangles with positive area in the painted surface. */
+/** Counts distinct tile rectangles within visible pattern regions, clipped to the wall. */
 export class TileCounter {
+  private regionGeometry = new PatternRegionGeometry();
   private clipper = new PerimeterClipper();
   private cache = new Map<string, { key: string; result: TileCount | null }>();
   private work = 0;
@@ -41,6 +43,7 @@ export class TileCounter {
   }
 
   private calculate(wall: Wall, patterns: Pattern[]): TileCount {
+    if (!wall.patternRegions.length) return { total: 0, patterns: [] };
     const points = wall.outline.points;
     let pieces = ShapeUtils.triangulateShape(
       points.map(([x, y]) => new Vector2(x, y)),
@@ -51,23 +54,20 @@ export class TileCounter {
       pieces = pieces.flatMap((piece) => this.subtract(piece, band));
     }
     const definitions = new Map(patterns.map((pattern) => [pattern.name, pattern]));
-    const regions = wall.patternRegions.filter(
-      (region) => region.width > 0 && region.height > 0 && definitions.has(region.pattern),
-    );
+    const regions = wall.patternRegions
+      .map((region) => this.regionGeometry.resolve(wall, region))
+      .filter((region) => region.width > 0 && region.height > 0 && definitions.has(region.pattern));
     const masks = regions.map((region) =>
       this.rectangle(region.x, region.y, region.width, region.height),
     );
-    const surfaces = [wall.outline, ...regions];
     const tiles = new Map<string, Set<string>>();
-    surfaces.forEach((surface, index) => {
+    regions.forEach((surface, index) => {
       const definition = definitions.get(surface.pattern);
       if (!definition || !(definition.tileWidth > 0 && definition.tileHeight > 0)) return;
-      let visible = pieces;
-      if (index > 0)
-        visible = visible
-          .map((piece) => this.intersect(piece, masks[index - 1]))
-          .filter((piece) => this.area(piece) > 1e-8);
-      for (const mask of masks.slice(index)) {
+      let visible = pieces
+        .map((piece) => this.intersect(piece, masks[index]))
+        .filter((piece) => this.area(piece) > 1e-8);
+      for (const mask of masks.slice(index + 1)) {
         visible = visible.flatMap((piece) => this.subtract(piece, mask));
       }
       const offsetX = surface.patternX + wall.outline.patternInset;

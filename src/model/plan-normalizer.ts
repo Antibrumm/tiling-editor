@@ -62,6 +62,7 @@ export class PlanNormalizer {
   }
   public normalizePatternRegion(region: Input<PatternRegion> = {}): PatternRegion {
     return {
+      fullWall: region.fullWall === true || region.fullWall === 'true',
       x: this.finite(region.x),
       y: this.finite(region.y),
       width: Math.max(0, this.finite(region.width)),
@@ -161,6 +162,23 @@ export class PlanNormalizer {
   }
   public normalizeWall(wall: WallInput = {}): Wall {
     const outline = wall.outline ?? {};
+    const regions = Array.isArray(wall.patternRegions)
+      ? wall.patternRegions.map((value) => this.normalizePatternRegion(value))
+      : [];
+    if (outline.pattern)
+      regions.unshift(
+        this.normalizePatternRegion({
+          fullWall: true,
+          pattern: outline.pattern,
+          patternX: outline.patternX,
+          patternY: outline.patternY,
+          patternRotation: outline.patternRotation,
+        }),
+      );
+    if (regions.filter((region) => region.fullWall).length > 1)
+      throw new Error(
+        `Wall ${String(wall.name ?? '')} can have only one full-wall pattern region.`,
+      );
     return {
       name: String(wall.name ?? ''),
       x: this.finite(wall.x),
@@ -171,18 +189,12 @@ export class PlanNormalizer {
         points: Array.isArray(outline.points)
           ? outline.points.map((value) => this.normalizePoint(value))
           : [],
-        pattern: String(outline.pattern ?? ''),
-        patternX: this.finite(outline.patternX),
-        patternY: this.finite(outline.patternY),
-        patternRotation: this.finite(outline.patternRotation),
         patternInset: Math.max(0, this.finite(outline.patternInset)),
         fill: String(outline.fill ?? 'white'),
         stroke: String(outline.stroke ?? ''),
         strokeWidth: this.finite(outline.strokeWidth, 1),
       },
-      patternRegions: Array.isArray(wall.patternRegions)
-        ? wall.patternRegions.map((value) => this.normalizePatternRegion(value))
-        : [],
+      patternRegions: regions,
       objects: Array.isArray(wall.objects)
         ? wall.objects.map((value) => this.normalizeObject(value))
         : [],

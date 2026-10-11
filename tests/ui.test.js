@@ -176,10 +176,20 @@ test('editor startup, controls, selection, and reactive 3D preview', async () =>
     'Tile counts can be restored',
   );
   const toggle = document.getElementById('three-toggle');
+  const placementSections = () =>
+    [...document.querySelectorAll('.wall-content > .group-card')].filter(
+      (card) => card.querySelector('summary')?.textContent === '3D placement',
+    );
+  assert.equal(placementSections().length, 0, 'Placement controls are hidden in 2D');
   toggle.checked = true;
   toggle.dispatchEvent(new window.Event('change'));
   await wait();
   const test = window.editorTest;
+  assert.equal(placementSections().length, 7, 'Placement controls appear with the 3D preview');
+  assert(
+    placementSections().every((card) => card === card.parentElement.lastElementChild),
+    'Placement is last in each wall section',
+  );
   assert(test.threePreview.renderer);
   assert.equal(test.threePreview.entries.size, 7);
   assert.equal(test.threePreview.camera.up.z, 1);
@@ -401,6 +411,7 @@ test('editor startup, controls, selection, and reactive 3D preview', async () =>
   assert(!document.getElementById('preview').hidden);
   test.planService.addPattern({ name: 'reorder-test', tileWidth: 100, tileHeight: 100 });
   await wait();
+  assert.equal(placementSections().length, 0, 'Placement controls disappear when 3D is disabled');
   const patternNames = Array.from(test.planService.data.patterns, (pattern) => pattern.name);
   const patternCards = document.querySelectorAll('#tile-controls > .group-card');
   assert.equal(patternCards.length, patternNames.length);
@@ -428,6 +439,25 @@ test('editor startup, controls, selection, and reactive 3D preview', async () =>
   const floorCard = [...document.querySelectorAll('.wall-section')].find((card) =>
     card.querySelector('summary').textContent.includes('floor'),
   );
+  const fullWallToggle = floorCard.querySelector('.pattern-regions input[type="checkbox"]');
+  assert(fullWallToggle.checked, 'Template tiling belongs to a full-wall region');
+  const fullWallButton = () =>
+    [...floorCard.querySelectorAll('button')].find(
+      (button) => button.textContent === 'Add full-wall pattern',
+    );
+  assert(!fullWallButton(), 'Full-wall add button is hidden when a full-wall region exists');
+  fullWallToggle.checked = false;
+  fullWallToggle.dispatchEvent(new window.Event('change', { bubbles: true }));
+  await wait();
+  assert.equal(test.planService.wall('floor').patternRegions[0].fullWall, false);
+  assert(fullWallButton(), 'Full-wall add button returns when coverage is switched to a rectangle');
+  assert(test.planService.wall('floor').patternRegions[0].width > 0);
+  const regionToggle = floorCard.querySelector('.pattern-regions input[type="checkbox"]');
+  regionToggle.checked = true;
+  regionToggle.dispatchEvent(new window.Event('change', { bubbles: true }));
+  await wait();
+  assert.equal(test.planService.wall('floor').patternRegions[0].fullWall, true);
+  assert(!fullWallButton(), 'Full-wall add button hides again after enabling full-wall coverage');
   const insetInput = [...floorCard.querySelectorAll('label')]
     .find((label) => label.textContent.includes('Pattern inset (mm)'))
     .querySelector('input');

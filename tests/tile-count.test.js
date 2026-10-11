@@ -102,18 +102,38 @@ test('replaces covered tiles with region patterns and deduplicates matching grid
   };
   f.wall.patternRegions = [region];
   expect(count(f)).toEqual({
-    total: 5,
-    patterns: [
-      { name: 'tile', count: 1 },
-      { name: 'small', count: 4 },
-    ],
+    total: 4,
+    patterns: [{ name: 'small', count: 4 }],
   });
   f.wall.patternRegions.push({ ...region, pattern: 'tile' });
-  expect(count(f).total).toBe(2);
+  expect(count(f).total).toBe(1);
   f.wall.patternRegions = [{ ...region, x: 50, width: 100, pattern: 'tile' }];
   expect(count(f).total).toBe(2);
   f.wall.patternRegions = [{ ...region, x: 300 }];
+  expect(count(f).total).toBe(0);
+});
+
+test('counts only pattern regions even when the complete wall has a base pattern', () => {
+  const f = fixture(rectangle(1000, 1000));
+  f.wall.patternRegions = [];
+  expect(count(f)).toEqual({ total: 0, patterns: [] });
+  f.wall.patternRegions = [
+    {
+      x: 0,
+      y: 0,
+      width: 150,
+      height: 100,
+      pattern: 'tile',
+      patternX: 0,
+      patternY: 0,
+      patternRotation: 0,
+    },
+  ];
   expect(count(f).total).toBe(2);
+  f.wall.patternRegions.push({ ...f.wall.patternRegions[0], x: 500, width: 100 });
+  expect(count(f).total).toBe(3);
+  expect(f.wall.outline).not.toHaveProperty('pattern');
+  expect(count(f).total).toBe(3);
 });
 
 test('untiled surfaces can still contain tiled regions; elements do not remove tiling', () => {

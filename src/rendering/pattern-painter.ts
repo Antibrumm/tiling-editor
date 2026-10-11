@@ -1,10 +1,15 @@
-import type { Pattern, Outline, Bounds } from '../model/types';
+import type { Pattern, Outline, PatternRegion, Bounds } from '../model/types';
 import { PerimeterClipper } from './perimeter-clipper';
 import { textureRotationQuarter } from './texture-rotation';
 export type PatternSurface = Pick<
-  Outline,
-  'points' | 'pattern' | 'patternX' | 'patternY' | 'patternRotation'
-> & { fill?: string; patternInset?: number; perimeterPoints?: Outline['points'] };
+  PatternRegion,
+  'pattern' | 'patternX' | 'patternY' | 'patternRotation'
+> & {
+  points: Outline['points'];
+  fill?: string;
+  patternInset?: number;
+  perimeterPoints?: Outline['points'];
+};
 export function createPatternPainter(onTextureLoad: () => void) {
   const perimeterClipper = new PerimeterClipper();
   const tileTextureCache = new Map<string, HTMLImageElement>();

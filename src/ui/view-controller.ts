@@ -5,7 +5,7 @@ import { ThreePreview } from '../rendering/three-preview';
 
 import { GeometryTools } from '../model/geometry';
 
-import type { ReadonlySignal } from '@preact/signals';
+import type { ReadonlySignal, Signal } from '@preact/signals';
 import type { ViewBox, ViewState } from '../ui/types';
 
 import { CanvasViewport } from '../ui/canvas-viewport';
@@ -17,6 +17,7 @@ interface ViewControllerDependencies {
   splitToggle: HTMLInputElement;
   sourceToggle: HTMLInputElement;
   threeToggle: HTMLInputElement;
+  threePreviewVisibleSignal: Signal<boolean>;
   viewPanels: HTMLElement;
   preview: HTMLElement;
   threeContainer: HTMLElement;
@@ -59,6 +60,7 @@ export class ViewController {
     this.dependencies.viewPanels.classList.toggle('side-by-side', split);
     this.dependencies.preview.hidden = showThree || (!split && showSource);
     this.dependencies.threeContainer.hidden = !showThree || (!split && showSource);
+    this.dependencies.threePreviewVisibleSignal.value = !this.dependencies.threeContainer.hidden;
     if (!this.dependencies.threeContainer.hidden) void this.dependencies.threePreview.activate();
     this.dependencies.sourceView.hidden = !split && !showSource;
     getElement('view-title').textContent = split

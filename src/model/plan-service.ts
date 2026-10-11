@@ -1,3 +1,4 @@
+import { PatternRegionGeometry } from './pattern-region-geometry';
 import { PlanNormalizer } from './plan-normalizer';
 import { ScenePlacement } from './scene-placement';
 import type { PlanChange } from './events';
@@ -25,6 +26,7 @@ function isKey<T extends string>(key: string, keys: readonly T[]): key is T {
  * snapshot() returns a detached copy for rendering, serialization, and reset baselines.
  */
 export class PlanService {
+  private regionGeometry = new PatternRegionGeometry();
   private placement = new ScenePlacement();
   data: Plan;
   listeners = new Set<(change: PlanChange) => void>();
@@ -205,21 +207,11 @@ export class PlanService {
     return true;
   }
   setOutlineValue(wallName: string, key: string, value: unknown) {
-    if (
-      !isKey(key, [
-        'pattern',
-        'patternRotation',
-        'patternInset',
-        'fill',
-        'stroke',
-        'strokeWidth',
-      ] as const)
-    )
-      return false;
+    if (!isKey(key, ['patternInset', 'fill', 'stroke', 'strokeWidth'] as const)) return false;
     const o = this.wall(wallName)?.outline;
     if (!o) return false;
     const oldValue = o[key];
-    if (key === 'strokeWidth' || key === 'patternRotation' || key === 'patternInset') {
+    if (key === 'strokeWidth' || key === 'patternInset') {
       const next = Number(value);
       if (!Number.isFinite(next)) return false;
       o[key] = key === 'patternInset' ? Math.max(0, next) : next;
@@ -288,18 +280,11 @@ export class PlanService {
     this.emit({ type: 'pattern-change', patternName, key, oldValue, value: p[key] });
     return true;
   }
-  setPatternTranslation(wallName: string, x: number, y: number) {
-    const o = this.wall(wallName)?.outline;
-    if (!o) return false;
-    o.patternX = Math.round(Number(x) || 0);
-    o.patternY = Math.round(Number(y) || 0);
-    this.emit({ type: 'pattern-move', wallName, x: o.patternX, y: o.patternY });
-    return true;
-  }
   addPatternRegion(wallName: string, region: Input<PatternRegion> = {}) {
     const w = this.wall(wallName);
     if (!w) return false;
     const added = this.normalizer.normalizePatternRegion(region);
+    if (added.fullWall && w.patternRegions.some((existing) => existing.fullWall)) return false;
     w.patternRegions.push(added);
     this.emit({
       type: 'pattern-region-add',
@@ -323,11 +308,21 @@ export class PlanService {
         'patternX',
         'patternY',
         'patternRotation',
+        'fullWall',
       ] as const)
     )
       return false;
     const oldValue = r[key];
-    if (key === 'pattern') {
+    if (key === 'fullWall') {
+      if (typeof value !== 'boolean') return false;
+      if (value && w.patternRegions.some((existing) => existing !== r && existing.fullWall))
+        return false;
+      if (r.fullWall && !value) {
+        const bounds = this.regionGeometry.resolve(w, r);
+        Object.assign(r, { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height });
+      }
+      r.fullWall = value;
+    } else if (key === 'pattern') {
       if (
         value != null &&
         typeof value !== 'string' &&
@@ -435,11 +430,7 @@ export class PlanService {
     return true;
   }
   removePattern(name: string) {
-    if (
-      this.data.walls.some(
-        (w) => w.outline.pattern === name || w.patternRegions?.some((r) => r.pattern === name),
-      )
-    )
+    if (this.data.walls.some((w) => w.patternRegions?.some((r) => r.pattern === name)))
       return false;
     const i = this.data.patterns.findIndex((p) => p.name === name);
     if (i < 0) return false;
@@ -453,7 +444,6 @@ export class PlanService {
     if (!p || !n || this.data.patterns.some((x) => x.name === n)) return false;
     p.name = n;
     for (const w of this.data.walls) {
-      if (w.outline.pattern === oldName) w.outline.pattern = n;
       for (const r of w.patternRegions || []) if (r.pattern === oldName) r.pattern = n;
     }
     this.emit({ type: 'pattern-rename', oldName, newName: n });

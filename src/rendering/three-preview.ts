@@ -1,3 +1,4 @@
+import { PatternRegionGeometry } from '../model/pattern-region-geometry';
 import type * as THREE from 'three';
 import type { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { Plan, Wall, Light, Bounds, SelectionHit } from '../model/types';
@@ -40,6 +41,7 @@ interface LightEntry {
  * a fit without a preset preserves the current viewing direction.
  */
 export class ThreePreview {
+  private regionGeometry = new PatternRegionGeometry();
   private placement = new ScenePlacement();
   private objectLayers = new ObjectLayers();
   container: HTMLElement;
@@ -216,8 +218,17 @@ export class ThreePreview {
     for (const point of points.slice(1)) path.lineTo(...point);
     path.closePath();
     const patterns = new Map(plan.patterns.map((p) => [p.name, p]));
-    this.paintSurfacePattern(ctx, path, wall.outline, patterns, null, resolution, 1);
-    for (const region of wall.patternRegions || []) {
+    this.paintSurfacePattern(
+      ctx,
+      path,
+      { ...wall.outline, pattern: '', patternX: 0, patternY: 0, patternRotation: 0 },
+      patterns,
+      null,
+      resolution,
+      1,
+    );
+    for (const storedRegion of wall.patternRegions || []) {
+      const region = this.regionGeometry.resolve(wall, storedRegion);
       if (!region.pattern || !(region.width > 0 && region.height > 0)) continue;
       const regionPath = new Path2D();
       regionPath.rect(region.x, region.y, region.width, region.height);
@@ -392,7 +403,7 @@ export class ThreePreview {
     plan.walls.forEach((wall, index) => {
       if (wall.outline.points.length < 3) return;
       keep.add(wall.name);
-      const used = new Set([wall.outline.pattern, ...wall.patternRegions.map((r) => r.pattern)]);
+      const used = new Set(wall.patternRegions.map((r) => r.pattern));
       const signature = JSON.stringify([
         wall.outline,
         wall.patternRegions,
