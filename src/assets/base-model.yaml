@@ -284,7 +284,7 @@ walls:
       yaw: 180
     outline:
       points: "0,0 1500,0 1500,2095 2300,2095 2300,0 3620,0 3620,2130 3245,2400 1920,2400 0,1070"
-      patternInset: 0
+      patternInset: 5
       fill: white
       stroke: ""
       strokeWidth: 1
@@ -295,7 +295,7 @@ walls:
         width: 0
         height: 0
         pattern: astrum-ivory-60
-        patternX: 15
+        patternX: 0
         patternY: 0
         patternRotation: 0
   - name: armor-left

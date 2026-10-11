@@ -223,21 +223,22 @@ export class CanvasRenderer {
           Math.max(...ys),
         );
         const count = this.tileCounter.count(wall, plan.patterns);
-        paintText(
-          `${wall.name}: ${count ? `${count.total.toLocaleString()} tiles` : 'tile count unavailable (plan too large)'}`,
-          anchor.x,
-          anchor.y + 18,
-          12,
-          700,
-        );
-        if (count && count.patterns.length > 1) {
+        if (!count) {
+          paintText(
+            `${wall.name}: tile count unavailable (plan too large)`,
+            anchor.x,
+            anchor.y + 18,
+            12,
+            700,
+          );
+        } else {
           count.patterns.forEach((pattern, index) => {
             paintText(
-              `${pattern.name}: ${pattern.count.toLocaleString()}`,
+              `${pattern.name}: ${pattern.count.toLocaleString()} tiles`,
               anchor.x,
-              anchor.y + 34 + index * 14,
-              10,
-              600,
+              anchor.y + 18 + index * 14,
+              12,
+              700,
             );
           });
         }

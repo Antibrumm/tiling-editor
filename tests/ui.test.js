@@ -162,6 +162,19 @@ test('editor startup, controls, selection, and reactive 3D preview', async () =>
     paintedTexts.some((text) => /: [\d,]+ tiles$/.test(text)),
     'Surface tile counts are painted',
   );
+  const loadedPlan = window.editorTest.planService.data;
+  assert(
+    loadedPlan.patterns.some((pattern) =>
+      paintedTexts.some((text) => text.startsWith(`${pattern.name}: `) && text.endsWith(' tiles')),
+    ),
+    'Counts are labeled by pattern',
+  );
+  assert(
+    !loadedPlan.walls.some((wall) =>
+      paintedTexts.some((text) => text.startsWith(`${wall.name}: `) && text.endsWith(' tiles')),
+    ),
+    'Combined wall totals are omitted',
+  );
   const tileCounts = document.getElementById('show-tile-counts');
   paintedTexts.length = 0;
   tileCounts.checked = false;
