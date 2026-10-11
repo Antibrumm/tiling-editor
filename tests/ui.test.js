@@ -1,8 +1,9 @@
-const fs = require('fs'),
-  assert = require('assert'),
-  esbuild = require('esbuild');
-const { JSDOM, VirtualConsole } = require('jsdom');
-const ts = require('typescript');
+import { test, afterEach } from 'vitest';
+import fs from 'node:fs';
+import assert from 'node:assert';
+import * as esbuild from 'esbuild';
+import { JSDOM, VirtualConsole } from 'jsdom';
+import ts from 'typescript';
 const source = fs.readFileSync('src/editor.ts', 'utf8').replace("import './styles.css';", '');
 // Instrument syntax nodes so formatting changes cannot silently disable tests.
 const syntax = ts.createSourceFile(
@@ -112,8 +113,9 @@ const dom = new JSDOM(html, {
     };
   },
 });
+afterEach(() => dom.window.close());
 const wait = () => new Promise((r) => setTimeout(r, 160));
-(async () => {
+test('editor startup, controls, selection, and reactive 3D preview', async () => {
   await wait();
   assert.deepStrictEqual(errors, [], 'Editor starts without DOM errors');
   const window = dom.window,
@@ -423,12 +425,4 @@ const wait = () => new Promise((r) => setTimeout(r, 160));
   );
   assert.equal(source.value, 'draft yaml', 'Inset edits preserve the unapplied source draft');
   assert.deepStrictEqual(errors, []);
-  console.log(
-    'Passed: bundled startup, template/sidebar, 3D mode, scene construction, reactive placement/depth, unapplied YAML protection, selection, 2D return. GPU rendering mocked.',
-  );
-  dom.window.close();
-})().catch((e) => {
-  console.error(e);
-  dom.window.close();
-  process.exit(1);
 });

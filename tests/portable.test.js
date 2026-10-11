@@ -1,11 +1,12 @@
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const { pathToFileURL } = require('node:url');
-const { JSDOM, ResourceLoader, VirtualConsole } = require('jsdom');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
 
-(async () => {
+test('portable file startup, YAML edits, downloads, and offline isolation', async () => {
   const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'tiling portable '));
   const file = path.join(folder, 'tiling-editor.html');
   fs.copyFileSync('dist/tiling-editor.html', file);
@@ -88,15 +89,9 @@ const { JSDOM, ResourceLoader, VirtualConsole } = require('jsdom');
     assert(downloads.every((blob) => blob.size > 100));
     assert.deepEqual(resources, [], 'The handed-over file requires no external resources');
     assert.deepEqual(errors, []);
-    console.log(
-      'Passed: isolated portable file startup, template, documentation, YAML apply, and downloads without external resources. Canvas mocked.',
-    );
   } finally {
     dom?.window.close();
     fs.rmSync(file, { force: true });
     fs.rmdirSync(folder);
   }
-})().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
 });

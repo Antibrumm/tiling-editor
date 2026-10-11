@@ -1,10 +1,11 @@
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const esbuild = require('esbuild');
-const { JSDOM, VirtualConsole } = require('jsdom');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import esbuild from 'esbuild';
+import { JSDOM, VirtualConsole } from 'jsdom';
 
-(async () => {
+test('production assets, documentation, and template startup', async () => {
   const { preview } = await import('vite');
   const server = await preview({ preview: { host: '127.0.0.1', port: 0 } });
   let dom;
@@ -93,15 +94,9 @@ const { JSDOM, VirtualConsole } = require('jsdom');
     assert.equal(dom.window.document.querySelectorAll('.wall-section').length, 7);
     assert(dom.window.document.getElementById('source').value.includes('Tiling Bathroom'));
     assert.deepEqual(errors, []);
-    console.log(
-      'Passed: production app startup and template loading, with all dist assets served by Vite preview. Canvas mocked.',
-    );
   } finally {
     dom?.window.close();
     server.httpServer.closeAllConnections();
     await new Promise((resolve) => server.httpServer.close(resolve));
   }
-})().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
 });

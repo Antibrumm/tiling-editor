@@ -100,3 +100,9 @@ Startup creates an empty document. The integrated **Tiling Bathroom** YAML is lo
 ## Extending the editor
 
 For persistent properties, add normalization in `PlanNormalizer` and mutation support in `PlanService`, then update YAML and SVG serialization only when the property belongs to those interchange contracts. Rendering-only state should stay outside the persisted model. Controls should call model mutations rather than forcing canvas redraws directly.
+
+## Tests
+
+Vitest runs the JavaScript test cases under `tests/`. `vitest.config.ts` defines two projects: `regression` for model, pattern, UI, Markdown, and Mermaid behavior, and `built` for website and portable HTML smoke tests. Use `npm test` for one regression run, `npm run test:watch` for watch mode, and `npm run test:build` after building. `npm run check` runs both projects with a fresh build. Filter a regression file with `npm test -- tests/pattern.test.js`, or a named case with `npm test -- -t "validates perimeter inset"`.
+
+Model tests import TypeScript directly through Vitest. UI tests retain syntax-based editor instrumentation and esbuild bundling, with real Three.js geometry and mocked WebGL rendering. Markdown and Mermaid tests also bundle browser code into jsdom. Register asynchronous work in an awaited `test` callback so assertion failures reach Vitest. Close jsdom windows and servers in hooks or `finally` blocks, and use `vi.stubGlobal` with `vi.unstubAllGlobals` for globals. New tests can use `.test.js` or `.test.ts`. Browser pixel and GPU verification still require the separate Chrome check.

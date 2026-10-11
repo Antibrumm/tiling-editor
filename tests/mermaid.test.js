@@ -1,6 +1,7 @@
-const assert = require('node:assert/strict');
-const esbuild = require('esbuild');
-const { JSDOM } = require('jsdom');
+import { test, afterEach } from 'vitest';
+import assert from 'node:assert/strict';
+import esbuild from 'esbuild';
+import { JSDOM } from 'jsdom';
 
 const bundle = esbuild.buildSync({
   entryPoints: ['src/ui/mermaid-renderer.ts'],
@@ -31,7 +32,7 @@ const deferred = () => {
   return { promise, resolve };
 };
 
-(async () => {
+test('lazy diagrams, engine reuse, source fallback, and stale navigation', async () => {
   let loads = 0;
   const calls = [];
   const configurations = [];
@@ -100,12 +101,5 @@ const deferred = () => {
   }).render(content);
   assert(content.querySelector('.mermaid-error'));
   assert.equal(content.querySelector('code').textContent, 'flowchart LR\nI --> J');
-  console.log(
-    'Passed: lazy Mermaid rendering, engine reuse, source fallback, and stale navigation handling. SVG rendering verified separately in Chrome.',
-  );
-})()
-  .catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-  })
-  .finally(() => dom.window.close());
+});
+afterEach(() => dom.window.close());
