@@ -10,6 +10,38 @@ import { ThreePreview } from '../src/rendering/three-preview';
 
 afterEach(() => vi.unstubAllGlobals());
 
+test.each(['directional', 'conic'])(
+  'calculates whole-millimeter aims for new %s lights',
+  (type) => {
+    const service = new PlanService({
+      upAxis3d: 'z',
+      walls: [
+        {
+          name: 'floor',
+          placement3d: { type: 'floor', x: 300.2, y: -400.3, z: 500.6, yaw: 30 },
+          outline: {
+            points: [
+              [0, 0],
+              [1000, 0],
+              [0, 2000],
+            ],
+          },
+        },
+      ],
+      lights3d: [{ id: 'custom', aimX: -12.25, aimY: 34.75, aimZ: 0.125 }],
+    });
+    const id = service.addLight(type);
+    const added = service.data.lights3d.find((light) => light.id === id);
+    assert.deepStrictEqual([added.aimX, added.aimY, added.aimZ], [256, 344, 501]);
+    assert.deepStrictEqual(
+      service.data.lights3d.slice(0, 1).map(({ aimX, aimY, aimZ }) => [aimX, aimY, aimZ]),
+      [[-12.25, 34.75, 0.125]],
+    );
+    const codec = new YamlCodec();
+    assert.deepStrictEqual(codec.decode(codec.encode(service.snapshot())), service.snapshot());
+  },
+);
+
 test('plan validation, placement, light lifecycle, geometry, and mesh reuse', () => {
   const elements = new Map(),
     document = {

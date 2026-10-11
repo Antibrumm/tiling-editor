@@ -109,11 +109,10 @@ export class PlanNormalizer {
     }
     const placement = this.placement.effective(plan, floor, plan.walls.indexOf(floor)),
       angle = (placement.yaw * Math.PI) / 180;
-    const round = (value: number) => Math.round(value * 10000) / 10000;
     return {
-      aimX: round(placement.x + x * Math.cos(angle) - y * Math.sin(angle)),
-      aimY: round(placement.y + x * Math.sin(angle) + y * Math.cos(angle)),
-      aimZ: round(placement.z),
+      aimX: Math.round(placement.x + x * Math.cos(angle) - y * Math.sin(angle)),
+      aimY: Math.round(placement.y + x * Math.sin(angle) + y * Math.cos(angle)),
+      aimZ: Math.round(placement.z),
     };
   }
   public normalizeLights(data: PlanInput, plan: Pick<Plan, 'walls'>): Light[] {
