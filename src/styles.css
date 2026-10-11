@@ -1249,3 +1249,79 @@ aside input[type='color'] {
   font-weight: 700;
   margin-bottom: 10px;
 }
+
+#print-document {
+  display: none;
+}
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+  body {
+    margin: 0;
+    background: white;
+    color: #172923;
+  }
+  body.printing-result > * {
+    display: none !important;
+  }
+  body.printing-result > #print-document {
+    display: block !important;
+  }
+  #print-document {
+    font-size: 10pt;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  #print-document h1 {
+    font-size: 22pt;
+    margin: 0 0 8mm;
+  }
+  #print-document h2 {
+    font-size: 16pt;
+    margin: 0 0 5mm;
+  }
+  #print-document h3 {
+    break-after: avoid;
+  }
+  #print-document .report-table-wrap {
+    overflow: visible;
+  }
+  #print-document .report-wall {
+    margin-top: 5mm;
+    padding-top: 4mm;
+  }
+  #print-document table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9pt;
+  }
+  #print-document th,
+  #print-document td {
+    text-align: left;
+    padding: 3mm;
+    border-bottom: 1px solid #dce5e1;
+  }
+  #print-document thead {
+    display: table-header-group;
+    background: #eef5f1;
+  }
+  #print-document tr {
+    break-inside: avoid;
+  }
+  #print-document caption {
+    text-align: left;
+    font-weight: 700;
+    margin-bottom: 3mm;
+  }
+  #print-document .print-preview {
+    break-before: page;
+  }
+  #print-document .print-preview img {
+    display: block;
+    width: 100%;
+    max-height: 240mm;
+    object-fit: contain;
+  }
+}

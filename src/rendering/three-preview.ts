@@ -49,6 +49,7 @@ export class ThreePreview {
   lights = new Map<string, LightEntry>();
   pending = false;
   loading = false;
+  private activation: Promise<void> | null = null;
   textureRevision = 0;
   needsFit = true;
   pointerStart: { id: number; x: number; y: number; button: number; multiple: boolean } | null =
@@ -89,7 +90,14 @@ export class ThreePreview {
       };
     new ResizeObserver(() => this.request()).observe(container);
   }
-  async activate() {
+  activate(): Promise<void> {
+    if (!this.activation)
+      this.activation = this.initialize().finally(() => {
+        this.activation = null;
+      });
+    return this.activation;
+  }
+  private async initialize() {
     if (this.renderer) {
       this.request();
       return;
@@ -174,6 +182,29 @@ export class ThreePreview {
       if (!this.renderer || this.container.hidden) return;
       this.update(this.state.plan());
     });
+  }
+  public async capture(plan: Plan): Promise<string> {
+    const hidden = this.container.hidden;
+    const style = this.container.style.cssText;
+    const aspect = this.renderer ? this.camera.aspect : null;
+    try {
+      this.container.hidden = false;
+      this.container.style.cssText =
+        'position:fixed;left:-10000px;top:0;width:1600px;height:1000px;min-height:0;max-height:none;';
+      await this.activate();
+      if (!this.renderer) throw new Error('3D preview is unavailable in this browser.');
+      this.update(plan);
+      this.render();
+      return this.renderer.domElement.toDataURL('image/png');
+    } finally {
+      this.container.style.cssText = style;
+      this.container.hidden = hidden;
+      if (aspect !== null) {
+        this.camera.aspect = aspect;
+        this.camera.updateProjectionMatrix();
+      }
+      this.render();
+    }
   }
   dispose(entry: SurfaceEntry) {
     this.scene.remove(entry.group);

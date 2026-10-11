@@ -126,6 +126,15 @@ export function createPatternPainter(onTextureLoad: () => void) {
     ctx.restore();
   }
 
-  return paintSurfacePattern;
+  return Object.assign(paintSurfacePattern, {
+    prepare: async (patterns: Pattern[]) => {
+      await Promise.all(
+        patterns.map(async (pattern) => {
+          const image = tileTextureImage(pattern.tileTexture);
+          if (image?.decode) await image.decode().catch(() => {});
+        }),
+      );
+    },
+  });
 }
 export type PatternPainter = ReturnType<typeof createPatternPainter>;

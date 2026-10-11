@@ -4,7 +4,13 @@ import type { ReadonlySignal } from '@preact/signals';
 import type { Plan } from '../../model/types';
 import { TileCounter } from '../../model/tile-counter';
 
-export function TileReport({ effectivePlan }: { effectivePlan: ReadonlySignal<Plan> }) {
+export function TileReport({
+  effectivePlan,
+  showTitle = true,
+}: {
+  effectivePlan: ReadonlySignal<Plan>;
+  showTitle?: boolean;
+}) {
   const plan = effectivePlan.value;
   const counter = useMemo(() => new TileCounter(), []);
   const walls = plan.walls.map((wall) => ({ wall, result: counter.analyze(wall, plan.patterns) }));
@@ -32,7 +38,7 @@ export function TileReport({ effectivePlan }: { effectivePlan: ReadonlySignal<Pl
   return h(
     'div',
     { class: 'tile-report-content' },
-    h('h2', null, plan.name),
+    showTitle && h('h2', null, plan.name),
     h(
       'p',
       { class: 'report-room-summary' },

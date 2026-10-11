@@ -7,6 +7,7 @@ import { EditorState } from './ui/editor-state';
 import { ViewController } from './ui/view-controller';
 import { SourcePresentation } from './ui/source-presentation';
 import { UiFeedback } from './ui/feedback';
+import { PrintController } from './ui/print-controller';
 import { TitleController } from './ui/title-controller';
 import { CanvasViewport } from './ui/canvas-viewport';
 import { RenderScheduler } from './rendering/render-scheduler';
@@ -666,6 +667,16 @@ function init() {
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       uiFeedback.message('PNG downloaded.');
     }, 'image/png');
+  });
+  new PrintController({
+    plan: () => planService.snapshot(),
+    painter: paintSurfacePattern,
+    threePreview,
+    button: getElement('print-result'),
+    showLabels,
+    showDimensions,
+    showTileCounts,
+    message: (text) => uiFeedback.message(text),
   });
   publishPersistentPlan();
   viewController.updateView();

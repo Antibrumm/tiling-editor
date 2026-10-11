@@ -63,6 +63,7 @@ const html = fs
 const errors = [],
   vc = new VirtualConsole();
 const paintedTexts = [];
+let printCalls = 0;
 vc.on('jsdomError', (e) => errors.push(e.message));
 const dom = new JSDOM(html, {
   runScripts: 'dangerously',
@@ -70,6 +71,11 @@ const dom = new JSDOM(html, {
   url: 'https://editor.test/',
   virtualConsole: vc,
   beforeParse(window) {
+    window.print = () => {
+      printCalls++;
+    };
+    window.HTMLCanvasElement.prototype.toDataURL = () =>
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=';
     window.ResizeObserver = class {
       observe() {}
     };
@@ -555,5 +561,30 @@ test('editor startup, controls, selection, and reactive 3D preview', async () =>
     'Inset edits refresh the baked 3D surface',
   );
   assert.equal(source.value, 'draft yaml', 'Inset edits preserve the unapplied source draft');
+  const beforePrint = test.planService.snapshot();
+  const cameraBeforePrint = test.threePreview.camera.position.clone();
+  document.getElementById('print-result').click();
+  await wait();
+  assert.equal(printCalls, 1, 'Prepared document opens the print dialog');
+  const printDocument = document.getElementById('print-document');
+  assert.equal(printDocument.querySelector('h1').textContent, beforePrint.name);
+  assert.equal(printDocument.querySelectorAll('.report-wall').length, beforePrint.walls.length);
+  assert.equal(
+    printDocument.querySelectorAll('.print-preview img').length,
+    2,
+    'Print contains 2D and 3D snapshots',
+  );
+  assert.deepStrictEqual(test.planService.snapshot(), beforePrint, 'Printing preserves plan data');
+  assert(
+    test.threePreview.camera.position.equals(cameraBeforePrint),
+    'Printing preserves the camera angle',
+  );
+  assert.equal(source.value, 'draft yaml', 'Printing preserves the YAML draft');
+  window.dispatchEvent(new window.Event('afterprint'));
+  assert.equal(
+    document.getElementById('print-document'),
+    null,
+    'Print staging is cleared after printing',
+  );
   assert.deepStrictEqual(errors, []);
 });

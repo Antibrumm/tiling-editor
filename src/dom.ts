@@ -37,6 +37,7 @@ interface EditorElements {
   'action-console-log': HTMLElement;
   download: HTMLButtonElement;
   'download-png': HTMLButtonElement;
+  'print-result': HTMLButtonElement;
   'download-yaml': HTMLButtonElement;
   copy: HTMLButtonElement;
   reset: HTMLButtonElement;
