@@ -137,8 +137,6 @@ export function WallSection({
           }),
         ),
       ),
-      h(PlacementControls, { context, wall, index }),
-      h(PatternRegions, { context, wall, patterns }),
       h(
         Card,
         { context, title: 'outline' },
@@ -165,6 +163,8 @@ export function WallSection({
           ),
         ),
       ),
+      h(PlacementControls, { context, wall, index }),
+      h(PatternRegions, { context, wall, patterns }),
       wall.objects.map((o, i) => h(ObjectCard, { context, key: i, wall, o, index: i })),
       h(
         Button,
