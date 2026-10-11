@@ -104,6 +104,12 @@ export function WallSection({
             patterns,
             onChange: (v) => context.planService.setOutlineValue(wall.name, 'pattern', v),
           }),
+          h(NumberField, {
+            label: 'Pattern inset (mm)',
+            value: wall.outline.patternInset,
+            min: 0,
+            onInput: (v) => context.planService.setOutlineValue(wall.name, 'patternInset', v),
+          }),
           ...(['patternX', 'patternY'] as const).map((key) =>
             h(NumberField, {
               key,

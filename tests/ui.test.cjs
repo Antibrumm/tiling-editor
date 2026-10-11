@@ -76,6 +76,7 @@ const dom = new JSDOM(html, {
       lineTo() {}
       closePath() {}
       rect() {}
+      arc() {}
     };
     window.structuredClone = structuredClone;
     window.HTMLDialogElement.prototype.showModal = function () {
@@ -401,6 +402,26 @@ const wait = () => new Promise((r) => setTimeout(r, 160));
   document.querySelector('.confirm-dialog button').click();
   assert.equal(document.querySelector('.confirm-dialog'), null);
   assert(test.planService.data.patterns.some((pattern) => pattern.name === 'reorder-test'));
+  const floorCard = [...document.querySelectorAll('.wall-section')].find((card) =>
+    card.querySelector('summary').textContent.includes('floor'),
+  );
+  const insetInput = [...floorCard.querySelectorAll('label')]
+    .find((label) => label.textContent.includes('Pattern inset (mm)'))
+    .querySelector('input');
+  toggle.checked = true;
+  toggle.dispatchEvent(new window.Event('change'));
+  await wait();
+  const previousFloor = test.threePreview.entries.get('floor');
+  insetInput.value = '5';
+  insetInput.dispatchEvent(new window.Event('input', { bubbles: true }));
+  await wait();
+  assert.equal(test.planService.wall('floor').outline.patternInset, 5);
+  assert.notEqual(
+    test.threePreview.entries.get('floor'),
+    previousFloor,
+    'Inset edits refresh the baked 3D surface',
+  );
+  assert.equal(source.value, 'draft yaml', 'Inset edits preserve the unapplied source draft');
   assert.deepStrictEqual(errors, []);
   console.log(
     'Passed: bundled startup, template/sidebar, 3D mode, scene construction, reactive placement/depth, unapplied YAML protection, selection, 2D return. GPU rendering mocked.',

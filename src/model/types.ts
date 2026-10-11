@@ -53,6 +53,7 @@ export interface Placement {
   yaw: number;
 }
 export interface Outline {
+  patternInset: number;
   points: Point[];
   pattern: string;
   patternX: number;

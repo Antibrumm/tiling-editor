@@ -205,15 +205,24 @@ export class PlanService {
     return true;
   }
   setOutlineValue(wallName: string, key: string, value: unknown) {
-    if (!isKey(key, ['pattern', 'patternRotation', 'fill', 'stroke', 'strokeWidth'] as const))
+    if (
+      !isKey(key, [
+        'pattern',
+        'patternRotation',
+        'patternInset',
+        'fill',
+        'stroke',
+        'strokeWidth',
+      ] as const)
+    )
       return false;
     const o = this.wall(wallName)?.outline;
     if (!o) return false;
     const oldValue = o[key];
-    if (key === 'strokeWidth' || key === 'patternRotation') {
+    if (key === 'strokeWidth' || key === 'patternRotation' || key === 'patternInset') {
       const next = Number(value);
       if (!Number.isFinite(next)) return false;
-      o[key] = next;
+      o[key] = key === 'patternInset' ? Math.max(0, next) : next;
     } else o[key] = String(value ?? '');
     this.emit({ type: 'outline-change', wallName, key, oldValue, value: o[key] });
     return true;

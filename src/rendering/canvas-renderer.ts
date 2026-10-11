@@ -130,6 +130,8 @@ export class CanvasRenderer {
         const regionPath = new Path2D();
         regionPath.rect(region.x, region.y, region.width, region.height);
         const regionOutline: PatternSurface = {
+          patternInset: wall.outline.patternInset,
+          perimeterPoints: wall.outline.points,
           points: [
             [region.x, region.y],
             [region.x + region.width, region.y],

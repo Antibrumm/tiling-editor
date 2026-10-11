@@ -176,6 +176,7 @@ export class PlanNormalizer {
         patternX: this.finite(outline.patternX),
         patternY: this.finite(outline.patternY),
         patternRotation: this.finite(outline.patternRotation),
+        patternInset: Math.max(0, this.finite(outline.patternInset)),
         fill: String(outline.fill ?? 'white'),
         stroke: String(outline.stroke ?? ''),
         strokeWidth: this.finite(outline.strokeWidth, 1),

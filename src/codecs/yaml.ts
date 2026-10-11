@@ -89,13 +89,18 @@ export class YamlCodec {
           ),
         );
       }
-      if (w.outline.pattern)
-        lines.push(
-          `      pattern: ${this.scalar(w.outline.pattern)}`,
-          `      patternX: ${number(w.outline.patternX)}`,
-          `      patternY: ${number(w.outline.patternY)}`,
-          `      patternRotation: ${number(w.outline.patternRotation || 0)}`,
-        );
+      lines.push(
+        `      patternInset: ${number(w.outline.patternInset)}`,
+        `      fill: ${this.scalar(w.outline.fill)}`,
+        `      stroke: ${this.scalar(w.outline.stroke)}`,
+        `      strokeWidth: ${number(w.outline.strokeWidth)}`,
+      );
+      lines.push(
+        `      pattern: ${this.scalar(w.outline.pattern)}`,
+        `      patternX: ${number(w.outline.patternX)}`,
+        `      patternY: ${number(w.outline.patternY)}`,
+        `      patternRotation: ${number(w.outline.patternRotation || 0)}`,
+      );
       if (w.patternRegions?.length) {
         lines.push('    patternRegions:');
         for (const r of w.patternRegions)

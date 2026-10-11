@@ -112,8 +112,13 @@ export class SvgCodec {
           : '';
       const [patternX, patternY] = wrapper
         ? this.transform.translation(wrapper, 'patternTransform')
-        : [0, 0];
-      const patternRotation = wrapper ? this.transform.rotation(wrapper, 'patternTransform') : 0;
+        : [
+            numeric(outline?.getAttribute('data-pattern-x')),
+            numeric(outline?.getAttribute('data-pattern-y')),
+          ];
+      const patternRotation = wrapper
+        ? this.transform.rotation(wrapper, 'patternTransform')
+        : numeric(outline?.getAttribute('data-pattern-rotation'));
       return {
         name: w.id || w.getAttribute('name') || '',
         x,
@@ -132,10 +137,20 @@ export class SvgCodec {
           patternX,
           patternY,
           patternRotation,
-          fill: pattern ? 'white' : outline?.getAttribute('fill') || 'white',
+          patternInset: numeric(outline?.getAttribute('data-pattern-inset')),
+          fill:
+            outline?.getAttribute('data-base-fill') ||
+            (pattern ? 'white' : outline?.getAttribute('fill') || 'white'),
           stroke: outline?.getAttribute('stroke') || '',
           strokeWidth: numeric(outline?.getAttribute('stroke-width'), 1),
         },
+        patternRegions: (() => {
+          try {
+            return JSON.parse(w.getAttribute('data-pattern-regions') || '[]');
+          } catch {
+            throw new Error('Invalid SVG pattern regions.');
+          }
+        })(),
         objects: [...w.querySelectorAll(':scope > rect.obj')].map((o) => {
           const [tx, ty] = this.transform.translation(o);
           return {
@@ -261,6 +276,7 @@ export class SvgCodec {
     for (const w of plan.walls) {
       const g = doc.createElementNS(ns, 'g');
       g.id = w.name;
+      g.setAttribute('data-pattern-regions', JSON.stringify(w.patternRegions));
       if (w.placement3d) g.setAttribute('data-placement-3d', JSON.stringify(w.placement3d));
       g.setAttribute('class', 'wall');
       g.setAttribute(
@@ -269,6 +285,11 @@ export class SvgCodec {
       );
       const poly = doc.createElementNS(ns, 'polygon');
       poly.setAttribute('class', 'outline');
+      poly.setAttribute('data-pattern-inset', number(w.outline.patternInset));
+      poly.setAttribute('data-base-fill', w.outline.fill);
+      poly.setAttribute('data-pattern-x', number(w.outline.patternX));
+      poly.setAttribute('data-pattern-y', number(w.outline.patternY));
+      poly.setAttribute('data-pattern-rotation', number(w.outline.patternRotation));
       poly.setAttribute(
         'points',
         w.outline.points.map((p) => `${number(p[0])},${number(p[1])}`).join(' '),
@@ -291,6 +312,87 @@ export class SvgCodec {
       if (w.outline.stroke) poly.setAttribute('stroke', w.outline.stroke);
       poly.setAttribute('stroke-width', number(w.outline.strokeWidth));
       g.append(poly);
+      const patterned = doc.createElementNS(ns, 'g');
+      if (w.outline.patternInset > 0) {
+        let maskId = 'perimeter-mask-' + plan.walls.indexOf(w);
+        while (
+          plan.patterns.some((p) => p.name === maskId) ||
+          plan.walls.some((wall) => wall.name === maskId) ||
+          [...defs.querySelectorAll('[id]')].some((el) => el.id === maskId)
+        )
+          maskId += '-';
+        const mask = doc.createElementNS(ns, 'mask');
+        mask.id = maskId;
+        mask.setAttribute('maskUnits', 'userSpaceOnUse');
+        const xs = w.outline.points.map(([x]) => x),
+          ys = w.outline.points.map(([, y]) => y);
+        mask.setAttribute('x', number(Math.min(...xs)));
+        mask.setAttribute('y', number(Math.min(...ys)));
+        mask.setAttribute('width', number(Math.max(...xs) - Math.min(...xs)));
+        mask.setAttribute('height', number(Math.max(...ys) - Math.min(...ys)));
+        const shape = doc.createElementNS(ns, 'polygon');
+        shape.setAttribute('points', poly.getAttribute('points')!);
+        shape.setAttribute('fill', 'white');
+        shape.setAttribute('stroke', 'black');
+        shape.setAttribute('stroke-width', number(w.outline.patternInset * 2));
+        shape.setAttribute('stroke-linejoin', 'round');
+        mask.append(shape);
+        defs.append(mask);
+        patterned.setAttribute('mask', `url(#${maskId})`);
+        if (w.outline.pattern) {
+          const tiles = poly.cloneNode(true) as Element;
+          tiles.removeAttribute('class');
+          tiles.removeAttribute('stroke');
+          patterned.append(tiles);
+          poly.setAttribute('data-pattern-ref', poly.getAttribute('fill')!.slice(5, -1));
+          poly.setAttribute('fill', w.outline.fill || 'white');
+        }
+      }
+      const clip = doc.createElementNS(ns, 'clipPath');
+      let clipId = 'surface-clip-' + plan.walls.indexOf(w);
+      while (
+        plan.patterns.some((p) => p.name === clipId) ||
+        plan.walls.some((wall) => wall.name === clipId) ||
+        [...defs.querySelectorAll('[id]')].some((el) => el.id === clipId)
+      )
+        clipId += '-';
+      clip.id = clipId;
+      const clipShape = doc.createElementNS(ns, 'polygon');
+      clipShape.setAttribute('points', poly.getAttribute('points')!);
+      clip.append(clipShape);
+      defs.append(clip);
+      patterned.setAttribute('clip-path', `url(#${clipId})`);
+      for (const [index, region] of w.patternRegions.entries()) {
+        if (!region.pattern || !(region.width > 0 && region.height > 0)) continue;
+        const wrap = doc.createElementNS(ns, 'pattern');
+        let id = `${clipId}-region-${index}`;
+        while (
+          [...defs.querySelectorAll('[id]')].some((el) => el.id === id) ||
+          plan.patterns.some((p) => p.name === id) ||
+          plan.walls.some((wall) => wall.name === id)
+        )
+          id += '-';
+        wrap.id = id;
+        wrap.setAttribute('href', `#${region.pattern}`);
+        wrap.setAttribute(
+          'patternTransform',
+          `translate(${number(region.patternX)} ${number(region.patternY)}) rotate(${number(region.patternRotation)})`,
+        );
+        defs.append(wrap);
+        const rect = doc.createElementNS(ns, 'rect');
+        for (const key of ['x', 'y', 'width', 'height'] as const)
+          rect.setAttribute(key, number(region[key]));
+        rect.setAttribute('fill', `url(#${id})`);
+        patterned.append(rect);
+      }
+      g.append(patterned);
+      // Keep the outline stroke above region overlays.
+      if (w.outline.stroke) {
+        const border = poly.cloneNode(true) as Element;
+        border.removeAttribute('class');
+        border.setAttribute('fill', 'none');
+        g.append(border);
+      }
       for (const o of w.objects) {
         const r = doc.createElementNS(ns, 'rect');
         r.setAttribute('class', 'obj');
@@ -323,6 +425,7 @@ export class SvgCodec {
         y: wall.y,
         rotation: wall.rotation,
         placement3d: wall.placement3d,
+        patternRegions: wall.patternRegions.map((region) => ({ ...region })),
         outline: {
           ...wall.outline,
           points: wall.outline.points.map((point) => [...point]),

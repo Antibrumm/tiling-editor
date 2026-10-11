@@ -216,6 +216,8 @@ export class ThreePreview {
       regionPath.rect(region.x, region.y, region.width, region.height);
       const outline: PatternSurface = {
         ...region,
+        patternInset: wall.outline.patternInset,
+        perimeterPoints: wall.outline.points,
         points: [
           [region.x, region.y],
           [region.x + region.width, region.y],

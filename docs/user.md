@@ -16,6 +16,8 @@ The sidebar contains the editable tile patterns, walls, and wall elements. Expan
 
 **Labels** and **Dimensions** under Display options control the annotations shown on the canvas.
 
+Each wall has a **Pattern inset (mm)** setting. Set it to `5` to leave a 5 mm untiled band inside every polygon edge, including sloped edges and concave corners. The band shows the outline fill color. The inset limits both the main pattern and pattern regions in 2D, PNG exports, and 3D. `0` tiles to the edge; older plans default to `0`. YAML and SVG preserve the setting. An inset wider than the available surface leaves that area untiled.
+
 ## Tile patterns
 
 Tile patterns define tile width, tile height, border size, tile color, border color, and pattern placement. A texture image can replace the tile color. When a texture is present, **Random texture rotation** can rotate individual tiles by deterministic 90° steps while keeping the layout stable between redraws.
