@@ -5,20 +5,22 @@
   "description": "2D tiling plan editor with a Three.js room preview",
   "type": "module",
   "engines": {
-    "node": "^20.19.0 || >=22.12.0"
+    "node": "^20.19.0 || ^22.13.0 || >=24.0.0"
   },
   "scripts": {
     "dev": "vite",
     "build": "npm run typecheck && vite build && node scripts/build-portable.mjs",
     "build:portable": "npm run typecheck && node scripts/build-portable.mjs",
     "test": "vitest run --project regression",
-    "check": "npm run format:check && npm test && npm run build && npm run test:build",
+    "check": "npm run format:check && npm run lint && npm test && npm run build && npm run test:build",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "test:build": "vitest run --project built",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
-    "test:watch": "vitest --watch --project regression"
+    "test:watch": "vitest --watch --project regression",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "npm run lint -- --fix"
   },
   "dependencies": {
     "@preact/signals": "2.11.2",
@@ -29,13 +31,18 @@
     "three": "0.180.0"
   },
   "devDependencies": {
+    "@eslint/js": "10.0.1",
     "@preact/preset-vite": "2.10.6",
     "@types/node": "24.19.2",
     "@types/three": "0.180.0",
     "esbuild": "0.28.2",
+    "eslint": "10.12.0",
+    "eslint-config-prettier": "10.1.8",
+    "globals": "17.13.0",
     "jsdom": "26.1.0",
     "prettier": "3.9.10",
     "typescript": "6.0.3",
+    "typescript-eslint": "8.71.1",
     "vite": "8.3.4",
     "vitest": "4.1.11"
   }

@@ -59,7 +59,7 @@ export class ViewController {
     this.dependencies.viewPanels.classList.toggle('side-by-side', split);
     this.dependencies.preview.hidden = showThree || (!split && showSource);
     this.dependencies.threeContainer.hidden = !showThree || (!split && showSource);
-    if (!this.dependencies.threeContainer.hidden) this.dependencies.threePreview.activate();
+    if (!this.dependencies.threeContainer.hidden) void this.dependencies.threePreview.activate();
     this.dependencies.sourceView.hidden = !split && !showSource;
     getElement('view-title').textContent = split
       ? (showThree ? '3D preview' : 'Preview') + ' + YAML source'
@@ -68,7 +68,7 @@ export class ViewController {
         : showThree
           ? '3D preview'
           : 'Preview';
-    requestAnimationFrame(this.drawCanvas);
+    requestAnimationFrame(() => this.drawCanvas());
   }
   public updateView() {
     this.dependencies.zoomLevel.textContent = Math.round(this.dependencies.view.scale * 100) + '%';

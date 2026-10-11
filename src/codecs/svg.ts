@@ -1,5 +1,5 @@
 import { PlanNormalizer } from '../model/plan-normalizer';
-import type { Plan, Point } from '../model/types';
+import type { Plan, Point, PlanInput, WallInput } from '../model/types';
 import { number } from './format';
 import { Transform2D } from './transform';
 import { textureRotationQuarter } from '../rendering/texture-rotation';
@@ -62,8 +62,6 @@ export class SvgCodec {
       .map(Number);
     if (vb.length !== 4 || vb.some((n) => !Number.isFinite(n)) || vb[2] <= 0 || vb[3] <= 0)
       throw new Error('SVG needs a valid viewBox.');
-    const flipped = root.querySelector('#flipped-drawing');
-    const [, fy] = flipped ? this.transform.translation(flipped) : [0, NaN];
     const allPatterns = [...root.querySelectorAll('pattern[id]')];
     const definitions = allPatterns.filter(
       (p) =>
@@ -80,9 +78,7 @@ export class SvgCodec {
       const tileWidth = numeric(tile?.getAttribute('width'));
       const tileHeight = numeric(tile?.getAttribute('height'));
       const repeatCols = Math.max(1, numeric(p.getAttribute('data-repeat-cols'), 1));
-      const repeatRows = Math.max(1, numeric(p.getAttribute('data-repeat-rows'), 1));
       const patternWidth = numeric(p.getAttribute('width'), tileWidth) / repeatCols;
-      const patternHeight = numeric(p.getAttribute('height'), tileHeight) / repeatRows;
       const widthGap = Math.max(0, patternWidth - tileWidth);
       const borderSize = widthGap;
       const texture = p.querySelector(':scope > image[data-tile-texture]');
@@ -126,7 +122,9 @@ export class SvgCodec {
         rotation: this.transform.rotation(w),
         placement3d: (() => {
           try {
-            return JSON.parse(w.getAttribute('data-placement-3d') || 'null');
+            return JSON.parse(
+              w.getAttribute('data-placement-3d') || 'null',
+            ) as WallInput['placement3d'];
           } catch {
             return null;
           }
@@ -146,7 +144,9 @@ export class SvgCodec {
         },
         patternRegions: (() => {
           try {
-            return JSON.parse(w.getAttribute('data-pattern-regions') || '[]');
+            return JSON.parse(
+              w.getAttribute('data-pattern-regions') || '[]',
+            ) as WallInput['patternRegions'];
           } catch {
             throw new Error('Invalid SVG pattern regions.');
           }
@@ -169,16 +169,16 @@ export class SvgCodec {
       upAxis3d: root.getAttribute('data-up-axis-3d') || undefined,
       lights3d: (() => {
         try {
-          return JSON.parse(root.getAttribute('data-lights-3d') || 'null');
+          return JSON.parse(root.getAttribute('data-lights-3d') || 'null') as PlanInput['lights3d'];
         } catch {
-          return null;
+          return undefined;
         }
       })(),
       light3d: (() => {
         try {
-          return JSON.parse(root.getAttribute('data-light-3d') || 'null');
+          return JSON.parse(root.getAttribute('data-light-3d') || 'null') as PlanInput['light3d'];
         } catch {
-          return null;
+          return undefined;
         }
       })(),
       name:

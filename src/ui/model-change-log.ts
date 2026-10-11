@@ -1,17 +1,21 @@
 import type { PlanChange } from '../model/events';
 /** Formats semantic model changes as messages for the action history. */
 export class ModelChangeLog {
+  private value(value: unknown): string {
+    if (value !== null && typeof value === 'object') return JSON.stringify(value);
+    return String(value);
+  }
   describe(change: PlanChange) {
     if (!change || !change.type) return '';
     switch (change.type) {
       case 'light-change':
-        return `Changed ${change.lightId} ${change.key} to ${change.value}${change.key === 'angle' ? '°' : ['color', 'intensity', 'type'].includes(change.key) ? '' : ' mm'}.`;
+        return `Changed ${change.lightId} ${change.key} to ${this.value(change.value)}${change.key === 'angle' ? '°' : ['color', 'intensity', 'type'].includes(change.key) ? '' : ' mm'}.`;
       case 'light-add':
         return `Added ${change.lightId}.`;
       case 'light-remove':
         return `Removed ${change.lightId}.`;
       case 'surface-placement':
-        return `Changed 3D placement of “${change.wallName}” ${change.key} to ${change.value}.`;
+        return `Changed 3D placement of “${change.wallName}” ${change.key} to ${this.value(change.value)}.`;
       case 'wall-add':
         return `Added wall “${change.wallName}”.`;
       case 'wall-remove':
@@ -21,7 +25,7 @@ export class ModelChangeLog {
       case 'wall-move':
         return `Dragged wall “${change.wallName}” to (${change.x}, ${change.y}).`;
       case 'wall-change':
-        return `Changed wall “${change.wallName}” ${change.key} to ${change.value}.`;
+        return `Changed wall “${change.wallName}” ${change.key} to ${this.value(change.value)}.`;
       case 'wall-reset':
         return `Reset wall “${change.wallName}” to its loaded state.`;
       case 'object-add':
@@ -33,9 +37,9 @@ export class ModelChangeLog {
       case 'object-move':
         return `Dragged element “${change.objectName || 'element'}” on “${change.wallName}” to (${change.x}, ${change.y}).`;
       case 'object-change':
-        return `Changed element “${change.objectName || 'element'}” on “${change.wallName}” ${change.key} to ${change.value}.`;
+        return `Changed element “${change.objectName || 'element'}” on “${change.wallName}” ${change.key} to ${this.value(change.value)}.`;
       case 'outline-change':
-        return `Changed outline on “${change.wallName}” ${change.key} to ${change.value ?? 'none'}.`;
+        return `Changed outline on “${change.wallName}” ${change.key} to ${this.value(change.value ?? 'none')}.`;
       case 'pattern-move':
         return `Translated pattern on “${change.wallName}” to (${change.x}, ${change.y}).`;
       case 'pattern-add':
@@ -47,13 +51,13 @@ export class ModelChangeLog {
       case 'pattern-rename':
         return `Renamed pattern “${change.oldName}” to “${change.newName}”.`;
       case 'pattern-change':
-        return `Changed pattern “${change.patternName}” ${change.key} to ${change.value}.`;
+        return `Changed pattern “${change.patternName}” ${change.key} to ${this.value(change.value)}.`;
       case 'pattern-region-add':
         return `Added pattern region ${change.index + 1} to “${change.wallName}”.`;
       case 'pattern-region-remove':
         return `Removed pattern region ${change.index + 1} from “${change.wallName}”.`;
       case 'pattern-region-change':
-        return `Changed pattern region ${change.index + 1} on “${change.wallName}” ${change.key} to ${change.value}.`;
+        return `Changed pattern region ${change.index + 1} on “${change.wallName}” ${change.key} to ${this.value(change.value)}.`;
       case 'pattern-reorder':
         return `Reordered pattern “${change.patternName}”.`;
       case 'wall-reorder':

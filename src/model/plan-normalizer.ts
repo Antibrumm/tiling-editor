@@ -122,9 +122,9 @@ export class PlanNormalizer {
       aim = this.floorAim(plan);
     return values.map((value, index) => {
       if (!value || typeof value !== 'object') value = {};
-      let id = String(value.id || 'light-' + (index + 1)),
-        base = id,
-        suffix = 2;
+      let id = String(value.id || 'light-' + (index + 1));
+      const base = id;
+      let suffix = 2;
       while (used.has(id)) id = base + '-' + suffix++;
       used.add(id);
       if (value.type !== undefined && value.type !== 'directional' && value.type !== 'conic')

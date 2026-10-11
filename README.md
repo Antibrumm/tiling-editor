@@ -4,7 +4,7 @@ A Preact and Signals application for editing tiling plans in 2D and previewing t
 
 ## Start
 
-Requires Node.js 20.19+ on the 20.x release line, or Node.js 22.12+ and npm.
+Requires Node.js 20.19+ on the 20.x release line, or Node.js 22.13+ and npm.
 
 ```sh
 npm ci
@@ -27,6 +27,7 @@ Give the recipient **`dist/tiling-editor.html`**. They can double-click it in Ex
 
 ```sh
 npm run format:check
+npm run lint
 npm run typecheck
 npm test
 npm run build
@@ -46,6 +47,12 @@ Open http://localhost:4173. Preview serves the existing build; rebuild after sou
 ## Formatting
 
 Run `npm run format` to format source, tests, configuration, and documentation with Prettier. `npm run format:check` checks formatting without writing files and is included in `npm run check`. The project uses two spaces, single quotes, semicolons, trailing commas, a 100-character target width, and LF line endings. Generated `dist/` output and dependencies are excluded.
+
+## Linting
+
+`npm run lint` checks source, configuration, tests, and build scripts with ESLint. `npm run lint:fix` applies available automatic fixes. `npm run check` runs linting after the formatting check.
+
+`eslint.config.js` uses the recommended ESLint and type-aware TypeScript rules for application code and TypeScript configuration, plus the recommended JavaScript rules for tests and scripts. TypeScript test files use the recommended rules without type information because they are outside the application tsconfig. Browser and Node globals are configured for their respective files. Prettier remains responsible for formatting through `eslint-config-prettier`. Generated output and dependency directories are ignored.
 
 ## Source layout
 
@@ -86,7 +93,7 @@ Edit these source files directly. The earlier Python migration/patch scripts are
 - `npm test -- tests/pattern.test.js` runs one regression file.
 - `npm test -- -t "validates perimeter inset"` filters by test name.
 - `npm run test:build` runs the website and portable smoke tests against an existing `dist/` build.
-- `npm run check` verifies formatting, regression tests, typechecking, both builds, and both smoke tests.
+- `npm run check` verifies formatting, linting, regression tests, typechecking, both builds, and both smoke tests.
 
 `vitest.config.ts` separates the `regression` and `built` projects. Tests run in isolated Node environments; UI and documentation suites create their own jsdom windows and close them after use. Source, documentation, and HTML changes trigger regression reruns even where the suite bundles files with esbuild.
 

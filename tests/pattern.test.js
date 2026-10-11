@@ -36,6 +36,15 @@ afterEach(() => {
 });
 
 describe('wall patterns', () => {
+  test('rejects object values without corrupting saved pattern references or colors', () => {
+    const saved = service.snapshot();
+    expect(service.setOutlineValue('wall', 'pattern', { name: 'grid' })).toBe(false);
+    expect(service.setPatternRegion('wall', 0, 'pattern', { name: 'grid' })).toBe(false);
+    expect(service.setPatternValue('grid', 'tileColor', { color: '#ffffff' })).toBe(false);
+    expect(service.snapshot()).toEqual(saved);
+    expect(yamlCodec.decode(yamlCodec.encode(saved))).toEqual(saved);
+  });
+
   test('defaults to zero rotation and inset', () => {
     expect(service.wall('wall').outline.patternRotation).toBe(0);
     expect(service.wall('wall').outline.patternInset).toBe(0);

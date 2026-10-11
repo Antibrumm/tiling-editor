@@ -4,7 +4,7 @@ export type ReorderType = 'pattern' | 'wall' | 'object';
 export interface NumberFieldProps {
   label: string;
   value: number;
-  onInput(value: number): void;
+  onInput: (value: number) => void;
   min?: number;
   max?: number;
   range?: boolean;
@@ -17,7 +17,7 @@ export interface ButtonProps {
 }
 export interface PatternSelectProps {
   value: string;
-  onChange(value: string): void;
+  onChange: (value: string) => void;
   patterns: Pattern[];
 }
 export interface EditableNameProps {

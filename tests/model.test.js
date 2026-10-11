@@ -217,9 +217,7 @@ test('plan validation, placement, light lifecycle, geometry, and mesh reuse', ()
   assert.equal(secondEntry.light.target.position.x, 1.25);
   assert.equal(secondEntry.light.target.position.y, -0.25);
   assert.equal(secondEntry.light.target.position.z, 0.9);
-  let helperDisposed = false,
-    markerDisposed = false;
-  secondEntry.helper.addEventListener?.('dispose', () => (helperDisposed = true));
+  let markerDisposed = false;
   secondEntry.marker.geometry.addEventListener('dispose', () => (markerDisposed = true));
   service.removeLight(secondLight);
   preview.update(service.snapshot());

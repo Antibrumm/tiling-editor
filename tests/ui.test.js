@@ -86,8 +86,7 @@ const dom = new JSDOM(html, {
     window.HTMLDialogElement.prototype.close = function () {
       this.open = false;
     };
-    window.HTMLCanvasElement.prototype.getContext = () =>
-      new Proxy({}, { get: (_, p) => () => {} });
+    window.HTMLCanvasElement.prototype.getContext = () => new Proxy({}, { get: () => () => {} });
     window.HTMLElement.prototype.scrollIntoView = () => {};
     window.HTMLElement.prototype.getBoundingClientRect = () => ({
       left: 0,

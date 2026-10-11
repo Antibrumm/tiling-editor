@@ -75,7 +75,9 @@ export class PointerController {
       this.touchPoints.set(event.pointerId, { x: event.clientX, y: event.clientY });
       try {
         this.element.setPointerCapture(event.pointerId);
-      } catch (_) {}
+      } catch {
+        // Pointer capture may already have been released by the browser.
+      }
       if (this.touchPoints.size >= 2) {
         const points = [...this.touchPoints.entries()].slice(0, 2);
         const a = points[0][1],

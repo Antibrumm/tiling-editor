@@ -223,7 +223,16 @@ export class PlanService {
       const next = Number(value);
       if (!Number.isFinite(next)) return false;
       o[key] = key === 'patternInset' ? Math.max(0, next) : next;
-    } else o[key] = String(value ?? '');
+    } else {
+      if (
+        value != null &&
+        typeof value !== 'string' &&
+        typeof value !== 'number' &&
+        typeof value !== 'boolean'
+      )
+        return false;
+      o[key] = String(value ?? '');
+    }
     this.emit({ type: 'outline-change', wallName, key, oldValue, value: o[key] });
     return true;
   }
@@ -261,9 +270,16 @@ export class PlanService {
     const p = this.data.patterns.find((p) => p.name === patternName);
     if (!p) return false;
     const oldValue = p[key];
-    if (key === 'tileColor' || key === 'borderColor' || key === 'tileTexture')
+    if (key === 'tileColor' || key === 'borderColor' || key === 'tileTexture') {
+      if (
+        value != null &&
+        typeof value !== 'string' &&
+        typeof value !== 'number' &&
+        typeof value !== 'boolean'
+      )
+        return false;
       p[key] = String(value ?? '');
-    else if (key === 'randomTextureRotation') p[key] = Boolean(value);
+    } else if (key === 'randomTextureRotation') p[key] = Boolean(value);
     else {
       const next = Number(value);
       if (!Number.isFinite(next)) return false;
@@ -311,8 +327,16 @@ export class PlanService {
     )
       return false;
     const oldValue = r[key];
-    if (key === 'pattern') r[key] = String(value ?? '');
-    else {
+    if (key === 'pattern') {
+      if (
+        value != null &&
+        typeof value !== 'string' &&
+        typeof value !== 'number' &&
+        typeof value !== 'boolean'
+      )
+        return false;
+      r[key] = String(value ?? '');
+    } else {
       const next = Number(value);
       if (!Number.isFinite(next)) return false;
       r[key] = key === 'width' || key === 'height' ? Math.max(0, next) : next;

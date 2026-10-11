@@ -180,8 +180,8 @@ function init() {
   const ctx = get2DContext(canvas);
   const showLabels = getElement('show-labels');
   const showDimensions = getElement('show-dimensions');
-  showLabels.addEventListener('change', viewController.drawCanvas);
-  showDimensions.addEventListener('change', viewController.drawCanvas);
+  showLabels.addEventListener('change', () => viewController.drawCanvas());
+  showDimensions.addEventListener('change', () => viewController.drawCanvas());
   const zoomLevel = getElement('zoom-level');
   const EMPTY_VIEW_BOX: ViewBox = [0, 0, 3000, 3000];
   let baseBox: ViewBox = [...EMPTY_VIEW_BOX];
@@ -222,32 +222,32 @@ function init() {
   const editorState: EditorState = new EditorState();
   Object.defineProperty(editorState, 'interactionPlan', {
     get: () => interactionPlanSignal.value,
-    set: (value) => {
+    set: (value: Plan | null) => {
       interactionPlanSignal.value = value;
     },
   });
   Object.defineProperties(editorState, {
     selectedLightId: {
       get: () => selectedLightIdSignal.value,
-      set: (value) => {
+      set: (value: string | null) => {
         selectedLightIdSignal.value = value;
       },
     },
     selectedWallId: {
       get: () => selectedWallIdSignal.value,
-      set: (value) => {
+      set: (value: string | null) => {
         selectedWallIdSignal.value = value;
       },
     },
     selectedObjectName: {
       get: () => selectedObjectNameSignal.value,
-      set: (value) => {
+      set: (value: string | null) => {
         selectedObjectNameSignal.value = value;
       },
     },
     selectedObjectIndex: {
       get: () => selectedObjectIndexSignal.value,
-      set: (value) => {
+      set: (value: number | null) => {
         selectedObjectIndexSignal.value = value;
       },
     },
@@ -255,7 +255,7 @@ function init() {
 
   const threeToggle = getElement('three-toggle');
   const threeContainer = getElement('preview-3d');
-  threeToggle.addEventListener('change', viewController.updateViewMode);
+  threeToggle.addEventListener('change', () => viewController.updateViewMode());
   const sourceToggle = getElement('source-toggle');
   const splitToggle = getElement('split-toggle');
   const sourceView = getElement('source-view');
@@ -268,26 +268,23 @@ function init() {
     if (splitToggle.checked) sourceToggle.checked = false;
     viewController.updateViewMode();
   });
-  const viewport: CanvasViewport = new CanvasViewport(canvas, view, viewController.updateView);
-  const renderScheduler: RenderScheduler = new RenderScheduler(viewController.drawCanvasNow);
-  new ResizeObserver(viewController.drawCanvas).observe(stage);
+  const viewport: CanvasViewport = new CanvasViewport(canvas, view, () =>
+    viewController.updateView(),
+  );
+  const renderScheduler: RenderScheduler = new RenderScheduler(() =>
+    viewController.drawCanvasNow(),
+  );
+  new ResizeObserver(() => viewController.drawCanvas()).observe(stage);
 
   const hitTester: HitTester = new HitTester(() => effectivePlan.value);
-  const selection: Selection = new Selection(editorState, viewController.drawCanvas);
-  const pointerController: PointerController = new PointerController(
-    preview,
-    viewport,
-    hitTester,
-    selection,
-    planService,
-    {
-      editorState,
-      planSignal,
-      normalizer,
-      interactionPlanSignal,
-      geometryTools,
-    },
-  );
+  const selection: Selection = new Selection(editorState, () => viewController.drawCanvas());
+  new PointerController(preview, viewport, hitTester, selection, planService, {
+    editorState,
+    planSignal,
+    normalizer,
+    interactionPlanSignal,
+    geometryTools,
+  });
   preview.addEventListener('dblclick', (event) => {
     if (!(event.target instanceof Element && event.target.closest('.zoom-controls')))
       viewController.fitView();
@@ -300,7 +297,7 @@ function init() {
     const rect = preview.getBoundingClientRect();
     viewController.zoomAt(0.8, rect.left + rect.width / 2, rect.top + rect.height / 2);
   });
-  getElement('zoom-fit').addEventListener('click', viewController.fitView);
+  getElement('zoom-fit').addEventListener('click', () => viewController.fitView());
   let resetSnapshot = planService.snapshot();
   baseBox =
     planService.data.canvas.width > 0 && planService.data.canvas.height > 0
@@ -339,11 +336,11 @@ function init() {
     paintSurfacePattern,
   );
   effect(() => {
-    effectivePlan.value;
-    lightVisibleSignal.value;
-    selectedLightIdSignal.value;
-    selectedWallIdSignal.value;
-    selectedObjectIndexSignal.value;
+    void effectivePlan.value;
+    void lightVisibleSignal.value;
+    void selectedLightIdSignal.value;
+    void selectedWallIdSignal.value;
+    void selectedObjectIndexSignal.value;
     threePreview.request();
   });
   const canvasRenderer: CanvasRenderer = new CanvasRenderer({
@@ -400,7 +397,7 @@ function init() {
     },
   });
   effect(() => {
-    effectivePlan.value;
+    void effectivePlan.value;
     renderScheduler.request();
   });
   effect(() => {
@@ -408,10 +405,10 @@ function init() {
     if (!yamlEditingSignal.value) yamlSourceEditor.syncFromPlan(plan);
   });
   effect(() => {
-    effectivePlan.value;
-    selectedWallIdSignal.value;
-    selectedObjectIndexSignal.value;
-    selectedLightIdSignal.value;
+    void effectivePlan.value;
+    void selectedWallIdSignal.value;
+    void selectedObjectIndexSignal.value;
+    void selectedLightIdSignal.value;
     controlPanel.render(sidebarMount);
   });
   const modelChangeLog = new ModelChangeLog();
@@ -572,12 +569,7 @@ function init() {
       uiFeedback.message(`${id} added.`);
     } catch (error) {
       uiFeedback.message(
-        'Could not add wall: ' +
-          (error && (error instanceof Error ? error.message : String(error))
-            ? error instanceof Error
-              ? error.message
-              : String(error)
-            : String(error)),
+        'Could not add wall: ' + (error instanceof Error ? error.message : 'Unknown error.'),
       );
       viewController.drawCanvas();
     }
@@ -586,7 +578,7 @@ function init() {
 
   const planTitle = getElement('plan-title');
   const editPlanTitle = getElement('edit-plan-title');
-  editPlanTitle.addEventListener('click', titleController.beginEdit);
+  editPlanTitle.addEventListener('click', () => titleController.beginEdit());
   planService.onEvent((change) => {
     if (change && change.type === 'name-change') titleController.update();
   });
@@ -604,13 +596,15 @@ function init() {
     sourceStatus.classList.remove('error');
     uiFeedback.message('Plan reset.');
   });
-  getElement('copy').addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(source.value);
-      uiFeedback.message('YAML source copied.');
-    } catch {
-      uiFeedback.message('Clipboard unavailable. Select the source and copy it manually.');
-    }
+  getElement('copy').addEventListener('click', () => {
+    void (async () => {
+      try {
+        await navigator.clipboard.writeText(source.value);
+        uiFeedback.message('YAML source copied.');
+      } catch {
+        uiFeedback.message('Clipboard unavailable. Select the source and copy it manually.');
+      }
+    })();
   });
   getElement('download-yaml').addEventListener('click', () => {
     const blob: Blob = new Blob([yamlCodec.encode(planService.snapshot())], {

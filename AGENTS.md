@@ -2,12 +2,13 @@
 
 ## Setup and commands
 
-- Use Node.js 20.19+ on the 20.x release line, or Node.js 22.12+ and npm. Install dependencies with `npm ci`.
+- Use Node.js 20.19+ on the 20.x release line, or Node.js 22.13+ and npm. Install dependencies with `npm ci`.
 - `npm run build` emits the regular Vite website and the self-contained `dist/tiling-editor.html`. `npm run build:portable` emits just the portable HTML, which must work when opened directly through `file://` without a server. `scripts/build-portable.mjs` uses esbuild to inline JavaScript, CSS, raw assets, and dynamic imports as a classic script; escape closing script/style tags when embedding content.
 - Run `npm run dev` for the local preview at http://localhost:5173. Vite watches source changes and updates the browser.
 - Run `npm run typecheck` for strict TypeScript checks, `npm test` for regression tests, and `npm run build` for the static app in `dist/`. `npm run check` runs all three plus the built-app smoke test. Use `npm run preview` to serve the built app locally at http://localhost:4173.
 - `npm run test:watch` starts Vitest watch mode for regression tests. `vitest.config.ts` separates regression tests from built-app smoke tests; use native Vitest test callbacks and import TypeScript directly for model tests.
 - Run `npm run format` to apply Prettier formatting and `npm run format:check` to verify it. `npm run check` enforces formatting before tests and builds. Use the project `.prettierrc.json`; exclude generated output through `.prettierignore`.
+- Run `npm run lint` for the recommended ESLint and type-aware TypeScript rules; use `npm run lint:fix` for automatic fixes. `eslint.config.js` keeps browser and Node globals separate and defers formatting to Prettier. `npm run check` enforces linting before tests and builds.
 - Read `README.md` and inspect the relevant source before making changes.
 
 ## Source and architecture

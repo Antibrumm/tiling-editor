@@ -88,7 +88,8 @@ export function PatternCard({
             const file = e.currentTarget.files?.[0];
             if (file) {
               const reader: FileReader = new FileReader();
-              reader.onload = () => set('tileTexture', String(reader.result || ''));
+              reader.onload = () =>
+                set('tileTexture', typeof reader.result === 'string' ? reader.result : '');
               reader.readAsDataURL(file);
             }
           },

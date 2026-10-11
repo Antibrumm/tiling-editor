@@ -25,7 +25,7 @@ interface ParsedPlan {
  */
 export class YamlCodec {
   constructor(private normalizer = new PlanNormalizer()) {}
-  private scalar(value: unknown) {
+  private scalar(value: string) {
     const t = String(value ?? '');
     return /^[A-Za-z_][A-Za-z0-9_.-]*$/.test(t) ? t : JSON.stringify(t);
   }
@@ -50,7 +50,7 @@ export class YamlCodec {
               '    ' +
               key +
               ': ' +
-              (typeof value === 'string' ? this.scalar(value) : number(value)),
+              (typeof value === 'string' ? this.scalar(value) : number(Number(value))),
           ),
       ]),
     );
@@ -85,7 +85,7 @@ export class YamlCodec {
               '      ' +
               key +
               ': ' +
-              (typeof value === 'string' ? this.scalar(value) : number(value)),
+              (typeof value === 'string' ? this.scalar(value) : number(Number(value))),
           ),
         );
       }
@@ -137,7 +137,9 @@ export class YamlCodec {
     if (v.startsWith('"') && v.endsWith('"')) {
       try {
         return JSON.parse(v);
-      } catch {}
+      } catch {
+        // Non-JSON quoted scalars retain the limited YAML parser fallback.
+      }
     }
     if (v.startsWith("'") && v.endsWith("'")) return v.slice(1, -1);
     if (/^-?(?:\d+\.?\d*|\.\d+)$/.test(v)) return Number(v);
@@ -273,7 +275,10 @@ export class YamlCodec {
     }
     if (!raw.walls.length) throw new Error('Expected at least one wall.');
     for (const w of raw.walls) {
-      const text = String(w.outline?.points || '').trim();
+      const points = w.outline?.points;
+      if (points != null && typeof points !== 'string')
+        throw new Error('Outline points must be a quoted coordinate string.');
+      const text = (points || '').trim();
       w.outline ||= {};
       w.outline.points = text
         ? text

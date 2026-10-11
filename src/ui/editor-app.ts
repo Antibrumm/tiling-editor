@@ -94,14 +94,14 @@ export class EditorApp {
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const text = String(reader.result || ''),
+        const text = typeof reader.result === 'string' ? reader.result : '',
           name = file.name.toLowerCase();
         const isYaml =
           name.endsWith('.yaml') ||
           name.endsWith('.yml') ||
           /yaml/i.test(file.type) ||
           (!name.endsWith('.svg') && /^\s*format\s*:\s*tiling-plan\b/m.test(text));
-        let plan = isYaml
+        const plan = isYaml
           ? this.dependencies.yamlCodec.decode(text)
           : this.dependencies.svgCodec.decode(text);
         const fileBase = file.name.replace(/\.(?:svg|ya?ml)$/i, '').trim();

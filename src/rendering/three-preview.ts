@@ -177,11 +177,18 @@ export class ThreePreview {
     this.scene.remove(entry.group);
     entry.group.traverse((node) => {
       if (!(node instanceof this.THREE.Mesh || node instanceof this.THREE.LineSegments)) return;
-      node.geometry.dispose();
-      const materials = Array.isArray(node.material) ? node.material : [node.material];
+      const renderable = node as THREE.Mesh<
+        THREE.BufferGeometry,
+        THREE.Material | THREE.Material[]
+      >;
+      renderable.geometry.dispose();
+      const materials = Array.isArray(renderable.material)
+        ? renderable.material
+        : [renderable.material];
       for (const material of materials) {
         if (material) {
-          if ('map' in material) material.map?.dispose();
+          const texture: unknown = 'map' in material ? material.map : null;
+          if (texture instanceof this.THREE.Texture) texture.dispose();
           material.dispose();
         }
       }
@@ -415,8 +422,11 @@ export class ThreePreview {
             (node.userData.type === 'object'
               ? node.userData.objectIndex === this.state.selectedObject()
               : this.state.selectedObject() === null);
-          node.material.emissive.set(selected ? 0x17472d : 0x000000);
-          node.material.emissiveIntensity = selected ? 0.4 : 0;
+          const material: unknown = node.material;
+          if (material instanceof this.THREE.MeshStandardMaterial) {
+            material.emissive.set(selected ? 0x17472d : 0x000000);
+            material.emissiveIntensity = selected ? 0.4 : 0;
+          }
         }
       });
     });
