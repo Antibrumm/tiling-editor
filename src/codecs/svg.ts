@@ -3,6 +3,7 @@ import type { Plan, Point, PlanInput, WallInput } from '../model/types';
 import { number } from './format';
 import { Transform2D } from './transform';
 import { textureRotationQuarter } from '../rendering/texture-rotation';
+import { PerimeterClipper } from '../rendering/perimeter-clipper';
 
 /**
  * Imports and exports SVG documents using the editor's plan-specific conventions.
@@ -106,12 +107,18 @@ export class SvgCodec {
         : definitions.some((p) => p.id === ref)
           ? ref
           : '';
-      const [patternX, patternY] = wrapper
+      const [renderX, renderY] = wrapper
         ? this.transform.translation(wrapper, 'patternTransform')
         : [
             numeric(outline?.getAttribute('data-pattern-x')),
             numeric(outline?.getAttribute('data-pattern-y')),
           ];
+      const patternX = outline?.hasAttribute('data-pattern-x')
+        ? numeric(outline.getAttribute('data-pattern-x'))
+        : renderX;
+      const patternY = outline?.hasAttribute('data-pattern-y')
+        ? numeric(outline.getAttribute('data-pattern-y'))
+        : renderY;
       const patternRotation = wrapper
         ? this.transform.rotation(wrapper, 'patternTransform')
         : numeric(outline?.getAttribute('data-pattern-rotation'));
@@ -304,7 +311,7 @@ export class SvgCodec {
         wrap.setAttribute('href', `#${w.outline.pattern}`);
         wrap.setAttribute(
           'patternTransform',
-          `translate(${number(w.outline.patternX)} ${number(w.outline.patternY)}) rotate(${number(w.outline.patternRotation || 0)})`,
+          `translate(${number(w.outline.patternX + w.outline.patternInset)} ${number(w.outline.patternY + w.outline.patternInset)}) rotate(${number(w.outline.patternRotation || 0)})`,
         );
         defs.append(wrap);
         poly.setAttribute('fill', `url(#${pid})`);
@@ -335,7 +342,8 @@ export class SvgCodec {
         shape.setAttribute('fill', 'white');
         shape.setAttribute('stroke', 'black');
         shape.setAttribute('stroke-width', number(w.outline.patternInset * 2));
-        shape.setAttribute('stroke-linejoin', 'round');
+        shape.setAttribute('stroke-linejoin', 'miter');
+        shape.setAttribute('stroke-miterlimit', String(new PerimeterClipper().miterLimit));
         mask.append(shape);
         defs.append(mask);
         patterned.setAttribute('mask', `url(#${maskId})`);
@@ -376,7 +384,7 @@ export class SvgCodec {
         wrap.setAttribute('href', `#${region.pattern}`);
         wrap.setAttribute(
           'patternTransform',
-          `translate(${number(region.patternX)} ${number(region.patternY)}) rotate(${number(region.patternRotation)})`,
+          `translate(${number(region.patternX + w.outline.patternInset)} ${number(region.patternY + w.outline.patternInset)}) rotate(${number(region.patternRotation)})`,
         );
         defs.append(wrap);
         const rect = doc.createElementNS(ns, 'rect');

@@ -62,8 +62,8 @@ export function createPatternPainter(onTextureLoad: () => void) {
         const minY = Math.max(wallMinY, visibleBounds?.minY ?? wallMinY);
         const maxY = Math.min(wallMaxY, visibleBounds?.maxY ?? wallMaxY);
         if (minX <= maxX && minY <= maxY) {
-          const offsetX = outline.patternX || 0,
-            offsetY = outline.patternY || 0;
+          const offsetX = (outline.patternX || 0) + (outline.patternInset || 0),
+            offsetY = (outline.patternY || 0) + (outline.patternInset || 0);
           const angle = ((outline.patternRotation || 0) * Math.PI) / 180;
           const cosine = Math.cos(angle),
             sine = Math.sin(angle);

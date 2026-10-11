@@ -16,7 +16,7 @@ The sidebar contains the editable tile patterns, walls, and wall elements. Expan
 
 **Labels** and **Dimensions** under Display options control the annotations shown on the canvas.
 
-Each wall has a **Pattern inset (mm)** setting. Set it to `5` to leave a 5 mm untiled band inside every polygon edge, including sloped edges and concave corners. The band shows the outline fill color. The inset limits both the main pattern and pattern regions in 2D, PNG exports, and 3D. `0` tiles to the edge; older plans default to `0`. YAML and SVG preserve the setting. An inset wider than the available surface leaves that area untiled.
+Each wall has a **Pattern inset (mm)** setting. Set it to `5` to leave a 5 mm untiled band inside every polygon edge, including sloped edges and concave corners. The band shows the outline fill color and follows the polygon with sharp corners. Pattern X/Y offsets are relative to the inset: with a 5 mm inset, offsets of `0, 0` start the grid at `5, 5` in wall-local coordinates, before pattern rotation. This also applies to pattern regions. The inset limits both the main pattern and pattern regions in 2D, PNG exports, and 3D. `0` tiles to the edge; older plans default to `0`. YAML and SVG preserve the setting. An inset wider than the available surface leaves that area untiled.
 
 ## Tile patterns
 

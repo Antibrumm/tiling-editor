@@ -1,30 +1,71 @@
 import type { Point } from '../model/types';
 
-/** Removes the distance band around every polygon edge, including concave corners. */
+/** Removes a polygon's perimeter band with sharp joins, matching an SVG miter stroke. */
 export class PerimeterClipper {
+  public readonly miterLimit = 10;
+
+  public bands(points: Point[], inset: number): Point[][] {
+    if (!(inset > 0) || points.length < 3) return [];
+    const vertices = points.filter((point, index) => {
+      const next = points[(index + 1) % points.length];
+      return point[0] !== next[0] || point[1] !== next[1];
+    });
+    if (vertices.length < 3) return [];
+    const normals = vertices.map(([x, y], index): Point => {
+      const [nx, ny] = vertices[(index + 1) % vertices.length];
+      const length = Math.hypot(nx - x, ny - y);
+      return [-(ny - y) / length, (nx - x) / length];
+    });
+    const bands: Point[][] = [];
+    vertices.forEach(([x, y], index) => {
+      const [bx, by] = vertices[(index + 1) % vertices.length];
+      const [nx, ny] = normals[index];
+      bands.push([
+        [x + nx * inset, y + ny * inset],
+        [bx + nx * inset, by + ny * inset],
+        [bx - nx * inset, by - ny * inset],
+        [x - nx * inset, y - ny * inset],
+      ]);
+      const [px, py] = normals[(index + vertices.length - 1) % vertices.length];
+      const denominator = 1 + px * nx + py * ny;
+      for (const sign of [-1, 1]) {
+        const join: Point[] = [
+          [x, y],
+          [x + px * inset * sign, y + py * inset * sign],
+        ];
+        if (denominator > 1e-12) {
+          const mx = ((px + nx) * inset * sign) / denominator;
+          const my = ((py + ny) * inset * sign) / denominator;
+          if (Math.hypot(mx, my) <= inset * this.miterLimit) join.push([x + mx, y + my]);
+        }
+        // Extremely acute joins bevel, keeping clipping finite and matching SVG's limit.
+        join.push([x + nx * inset * sign, y + ny * inset * sign]);
+        bands.push(join);
+      }
+    });
+    return bands;
+  }
+
   public clip(ctx: CanvasRenderingContext2D, points: Point[], inset: number) {
-    if (!(inset > 0) || points.length < 3) return;
+    const bands = this.bands(points, inset);
+    if (!bands.length) return;
     const xs = points.map(([x]) => x),
       ys = points.map(([, y]) => y);
     const minX = Math.min(...xs),
       minY = Math.min(...ys);
-    const width = Math.max(...xs) - minX,
-      height = Math.max(...ys) - minY;
-    for (let i = 0; i < points.length; i++) {
-      const [ax, ay] = points[i],
-        [bx, by] = points[(i + 1) % points.length];
-      const angle = Math.atan2(by - ay, bx - ax);
-      const nx = -Math.sin(angle) * inset,
-        ny = Math.cos(angle) * inset;
+    const padding = inset * this.miterLimit * 2;
+    for (const band of bands) {
       const path = new Path2D();
-      path.rect(minX - inset * 2, minY - inset * 2, width + inset * 4, height + inset * 4);
-      path.moveTo(ax + nx, ay + ny);
-      path.lineTo(bx + nx, by + ny);
-      path.arc(bx, by, inset, angle + Math.PI / 2, angle - Math.PI / 2, true);
-      path.lineTo(ax - nx, ay - ny);
-      path.arc(ax, ay, inset, angle - Math.PI / 2, angle - Math.PI * 1.5, true);
+      path.rect(
+        minX - padding,
+        minY - padding,
+        Math.max(...xs) - minX + padding * 2,
+        Math.max(...ys) - minY + padding * 2,
+      );
+      path.moveTo(...band[0]);
+      for (const point of band.slice(1)) path.lineTo(...point);
       path.closePath();
-      // Intersect complements separately so overlapping edge bands never create holes.
+      // Separate intersections remove the union of bands without overlap leaks.
       ctx.clip(path, 'evenodd');
     }
   }

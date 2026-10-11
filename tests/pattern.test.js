@@ -74,6 +74,9 @@ describe('wall patterns', () => {
     service.setOutlineValue('wall', 'patternRotation', 37);
     service.setPatternRegion('wall', 0, 'patternRotation', 123);
     service.setOutlineValue('wall', 'patternInset', 5);
+    service.setPatternTranslation('wall', 3, -2);
+    service.setPatternRegion('wall', 0, 'patternX', -4);
+    service.setPatternRegion('wall', 0, 'patternY', 7);
     service.setOutlineValue('wall', 'fill', '#eeeecc');
     service.setOutlineValue('wall', 'stroke', '#123456');
     service.setOutlineValue('wall', 'strokeWidth', 2);
@@ -87,6 +90,14 @@ describe('wall patterns', () => {
     expect(svgCodec.decode(svg)).toEqual(saved);
     const parsed = new dom.window.DOMParser().parseFromString(svg, 'image/svg+xml');
     expect(parsed.querySelector('mask polygon').getAttribute('stroke-width')).toBe('10');
+    expect(parsed.querySelector('mask polygon').getAttribute('stroke-linejoin')).toBe('miter');
+    if (pattern)
+      expect(parsed.querySelector('pattern[href="#grid"]').getAttribute('patternTransform')).toBe(
+        'translate(8 3) rotate(37)',
+      );
+    expect(parsed.querySelector('pattern[id*="region"]').getAttribute('patternTransform')).toBe(
+      'translate(1 12) rotate(123)',
+    );
     expect(parsed.querySelector('g[mask] rect').getAttribute('width')).toBe('20');
   });
 });
