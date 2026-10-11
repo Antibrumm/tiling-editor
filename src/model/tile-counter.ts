@@ -8,15 +8,34 @@ export interface TileCount {
   total: number;
   patterns: { name: string; count: number }[];
 }
+export interface TileRegionResult {
+  index: number;
+  pattern: string;
+  areaM2: number;
+  count: number;
+}
+export interface WallTileResult {
+  areaM2: number;
+  regions: TileRegionResult[];
+  counts: TileCount;
+}
 
 /** Counts distinct tile rectangles within visible pattern regions, clipped to the wall. */
 export class TileCounter {
   private regionGeometry = new PatternRegionGeometry();
   private clipper = new PerimeterClipper();
-  private cache = new Map<string, { key: string; result: TileCount | null }>();
+  private cache = new Map<string, { key: string; result: WallTileResult | null }>();
   private work = 0;
 
   public count(wall: Wall, patterns: Pattern[]): TileCount | null {
+    return this.analyze(wall, patterns)?.counts ?? null;
+  }
+
+  public wallAreaM2(wall: Wall): number {
+    return this.area(wall.outline.points) / 1000000;
+  }
+
+  public analyze(wall: Wall, patterns: Pattern[]): WallTileResult | null {
     const key = JSON.stringify([
       wall.outline,
       wall.patternRegions,
@@ -30,7 +49,7 @@ export class TileCounter {
     const cached = this.cache.get(wall.name);
     if (cached?.key === key) return cached.result;
     this.work = 0;
-    let result: TileCount | null;
+    let result: WallTileResult | null;
     try {
       result = this.calculate(wall, patterns);
     } catch (error) {
@@ -42,8 +61,16 @@ export class TileCounter {
     return result;
   }
 
-  private calculate(wall: Wall, patterns: Pattern[]): TileCount {
-    if (!wall.patternRegions.length) return { total: 0, patterns: [] };
+  private calculate(wall: Wall, patterns: Pattern[]): WallTileResult {
+    const details = wall.patternRegions.map((region, index): TileRegionResult => ({
+      index,
+      pattern: region.pattern,
+      areaM2: 0,
+      count: 0,
+    }));
+    const areaM2 = this.wallAreaM2(wall);
+    if (!wall.patternRegions.length)
+      return { areaM2, regions: [], counts: { total: 0, patterns: [] } };
     const points = wall.outline.points;
     let pieces = ShapeUtils.triangulateShape(
       points.map(([x, y]) => new Vector2(x, y)),
@@ -55,7 +82,7 @@ export class TileCounter {
     }
     const definitions = new Map(patterns.map((pattern) => [pattern.name, pattern]));
     const regions = wall.patternRegions
-      .map((region) => this.regionGeometry.resolve(wall, region))
+      .map((region, regionIndex) => ({ ...this.regionGeometry.resolve(wall, region), regionIndex }))
       .filter((region) => region.width > 0 && region.height > 0 && definitions.has(region.pattern));
     const masks = regions.map((region) =>
       this.rectangle(region.x, region.y, region.width, region.height),
@@ -70,6 +97,9 @@ export class TileCounter {
       for (const mask of masks.slice(index + 1)) {
         visible = visible.flatMap((piece) => this.subtract(piece, mask));
       }
+      const detail = details[surface.regionIndex];
+      detail.areaM2 = visible.reduce((sum, piece) => sum + this.area(piece), 0) / 1000000;
+      const regionTiles = new Set<string>();
       const offsetX = surface.patternX + wall.outline.patternInset;
       const offsetY = surface.patternY + wall.outline.patternInset;
       const angle = (surface.patternRotation * Math.PI) / 180;
@@ -101,7 +131,7 @@ export class TileCounter {
             const id = `${placement}:${column}:${row}`;
             this.budget();
             if (
-              !counted.has(id) &&
+              !regionTiles.has(id) &&
               this.area(
                 this.intersect(
                   polygon,
@@ -113,16 +143,23 @@ export class TileCounter {
                   ),
                 ),
               ) > 1e-8
-            )
+            ) {
               counted.add(id);
+              regionTiles.add(id);
+            }
           }
         }
       }
+      detail.count = regionTiles.size;
     });
     const breakdown = [...tiles].map(([name, ids]) => ({ name, count: ids.size }));
     return {
-      total: breakdown.reduce((total, pattern) => total + pattern.count, 0),
-      patterns: breakdown,
+      areaM2,
+      regions: details,
+      counts: {
+        total: breakdown.reduce((total, pattern) => total + pattern.count, 0),
+        patterns: breakdown,
+      },
     };
   }
 

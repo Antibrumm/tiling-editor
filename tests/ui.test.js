@@ -163,6 +163,72 @@ test('editor startup, controls, selection, and reactive 3D preview', async () =>
     'Surface tile counts are painted',
   );
   const loadedPlan = window.editorTest.planService.data;
+  const reportToggle = document.getElementById('report-toggle');
+  const report = document.getElementById('report-view');
+  const reportSnapshot = window.editorTest.planService.snapshot();
+  reportToggle.checked = true;
+  reportToggle.dispatchEvent(new window.Event('change'));
+  await wait();
+  assert(!report.hidden, 'Report view opens');
+  assert(document.getElementById('preview').hidden, 'Report replaces the canvas');
+  assert.equal(report.querySelectorAll('.report-wall').length, loadedPlan.walls.length);
+  assert.equal(
+    report.querySelectorAll('.report-wall tbody tr').length,
+    loadedPlan.walls.reduce((sum, wall) => sum + wall.patternRegions.length, 0),
+  );
+  assert(report.textContent.includes('m²') && report.textContent.includes('Selected tile'));
+  const roomSummary = report.querySelector('.report-room-summary');
+  assert(
+    roomSummary.textContent.includes('Complete room') &&
+      roomSummary.textContent.includes('Wall area:') &&
+      roomSummary.textContent.includes('Tile region area:'),
+  );
+  const expectedTypes = new Map();
+  for (const row of report.querySelectorAll('.report-wall tbody tr')) {
+    const cells = row.querySelectorAll('td');
+    const name = cells[1].textContent;
+    if (name === 'No tile selected') continue;
+    const previous = expectedTypes.get(name) || { count: 0, area: 0 };
+    previous.count += Number(cells[2].textContent.replace(/[^\d]/g, ''));
+    previous.area += Number(cells[0].textContent.split(' ')[0].replaceAll(',', ''));
+    expectedTypes.set(name, previous);
+  }
+  const typeRows = report.querySelectorAll('.report-tile-totals tbody tr');
+  assert.equal(typeRows.length, expectedTypes.size, 'Room lists each selected tile type once');
+  for (const row of typeRows) {
+    const expected = expectedTypes.get(row.querySelector('th').textContent);
+    const cells = row.querySelectorAll('td');
+    assert.equal(
+      cells[1].textContent,
+      expected.count.toLocaleString(),
+      'Tile type count sums its regions across walls',
+    );
+    const actualArea = Number(cells[0].textContent.split(' ')[0].replaceAll(',', ''));
+    assert(
+      Math.abs(actualArea - expected.area) < 0.001,
+      'Tile type area sums its regions across walls',
+    );
+  }
+  assert.deepStrictEqual(
+    window.editorTest.planService.snapshot(),
+    reportSnapshot,
+    'Viewing a report does not mutate the plan',
+  );
+  window.editorTest.planService.setName('Updated report title');
+  await wait();
+  assert.equal(
+    report.querySelector('h2').textContent,
+    'Updated report title',
+    'Report updates with plan edits',
+  );
+  window.editorTest.planService.setName(reportSnapshot.name);
+  reportToggle.checked = false;
+  reportToggle.dispatchEvent(new window.Event('change'));
+  await wait();
+  assert(
+    report.hidden && !document.getElementById('preview').hidden,
+    'Closing report restores the preview',
+  );
   assert(
     loadedPlan.patterns.some((pattern) =>
       paintedTexts.some((text) => text.startsWith(`${pattern.name}: `) && text.endsWith(' tiles')),

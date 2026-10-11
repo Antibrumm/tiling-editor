@@ -9,6 +9,8 @@ interface EditorElements {
   'view-title': HTMLElement;
   'three-toggle': HTMLInputElement;
   'source-toggle': HTMLInputElement;
+  'report-toggle': HTMLInputElement;
+  'report-view': HTMLElement;
   'split-toggle': HTMLInputElement;
   'view-panels': HTMLElement;
   preview: HTMLElement;

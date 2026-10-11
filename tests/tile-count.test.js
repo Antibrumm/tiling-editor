@@ -20,6 +20,66 @@ function count(fixture) {
   return new TileCounter().count(fixture.wall, fixture.patterns);
 }
 
+test('reports wall and visible tile-region areas in square meters with individual counts', () => {
+  const f = fixture(rectangle(2000, 1000), { patternInset: 100 }, [
+    { name: 'large', tileWidth: 100, tileHeight: 200, borderSize: 0 },
+  ]);
+  f.wall.patternRegions.push({
+    fullWall: false,
+    x: 1000,
+    y: 0,
+    width: 1000,
+    height: 1000,
+    pattern: 'large',
+    patternX: 0,
+    patternY: 0,
+    patternRotation: 0,
+  });
+  const result = new TileCounter().analyze(f.wall, f.patterns);
+  expect(result.areaM2).toBe(2);
+  expect(result.regions).toEqual([
+    { index: 0, pattern: 'tile', areaM2: 0.72, count: 72 },
+    { index: 1, pattern: 'large', areaM2: 0.72, count: 36 },
+  ]);
+  f.wall.patternRegions[1].x = 3000;
+  const outside = new TileCounter().analyze(f.wall, f.patterns);
+  expect(outside.regions[0].areaM2).toBeCloseTo(1.44);
+  expect(outside.regions[1]).toMatchObject({ areaM2: 0, count: 0 });
+});
+
+test('reports polygon area and preserves rows for empty or unselected regions', () => {
+  const f = fixture(
+    [
+      [0, 0],
+      [2000, 0],
+      [0, 1000],
+    ],
+    { pattern: '' },
+  );
+  const counter = new TileCounter();
+  expect(counter.analyze(f.wall, f.patterns)).toEqual({
+    areaM2: 1,
+    regions: [],
+    counts: { total: 0, patterns: [] },
+  });
+  f.wall.patternRegions = [
+    {
+      fullWall: true,
+      pattern: '',
+      patternX: 0,
+      patternY: 0,
+      patternRotation: 0,
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+    },
+  ];
+  expect(counter.analyze(f.wall, f.patterns).regions).toEqual([
+    { index: 0, pattern: '', areaM2: 0, count: 0 },
+  ]);
+});
+
 test('counts each full or partial tile once, excluding boundary-only contact', () => {
   expect(count(fixture()).total).toBe(4);
   expect(count(fixture(rectangle(201, 201))).total).toBe(9);

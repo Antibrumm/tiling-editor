@@ -18,6 +18,8 @@ export interface ControlPanelDependencies {
   scenePlacement: ScenePlacement;
   effectivePlan: ReadonlySignal<Plan>;
   threePreviewVisibleSignal: ReadonlySignal<boolean>;
+  reportVisibleSignal: ReadonlySignal<boolean>;
+  reportView: HTMLElement;
   resetWallToLoadedState: (wallName: string) => void;
   lightControls: HTMLElement;
   tileControls: HTMLElement;

@@ -17,6 +17,9 @@ interface ViewControllerDependencies {
   splitToggle: HTMLInputElement;
   sourceToggle: HTMLInputElement;
   threeToggle: HTMLInputElement;
+  reportToggle: HTMLInputElement;
+  reportView: HTMLElement;
+  reportVisibleSignal: Signal<boolean>;
   threePreviewVisibleSignal: Signal<boolean>;
   viewPanels: HTMLElement;
   preview: HTMLElement;
@@ -52,24 +55,30 @@ export class ViewController {
   }
 
   public updateViewMode() {
+    const showReport = this.dependencies.reportToggle.checked;
+    this.dependencies.reportView.hidden = !showReport;
+    this.dependencies.reportVisibleSignal.value = showReport;
     const split = this.dependencies.splitToggle.checked,
       showSource = this.dependencies.sourceToggle.checked,
       showThree = this.dependencies.threeToggle.checked;
-    this.dependencies.sourceToggle.disabled = split;
-    this.dependencies.splitToggle.disabled = showSource;
-    this.dependencies.viewPanels.classList.toggle('side-by-side', split);
-    this.dependencies.preview.hidden = showThree || (!split && showSource);
-    this.dependencies.threeContainer.hidden = !showThree || (!split && showSource);
+    this.dependencies.sourceToggle.disabled = showReport || split;
+    this.dependencies.splitToggle.disabled = showReport || showSource;
+    this.dependencies.threeToggle.disabled = showReport;
+    this.dependencies.viewPanels.classList.toggle('side-by-side', !showReport && split);
+    this.dependencies.preview.hidden = showReport || showThree || (!split && showSource);
+    this.dependencies.threeContainer.hidden = showReport || !showThree || (!split && showSource);
     this.dependencies.threePreviewVisibleSignal.value = !this.dependencies.threeContainer.hidden;
     if (!this.dependencies.threeContainer.hidden) void this.dependencies.threePreview.activate();
-    this.dependencies.sourceView.hidden = !split && !showSource;
-    getElement('view-title').textContent = split
-      ? (showThree ? '3D preview' : 'Preview') + ' + YAML source'
-      : showSource
-        ? 'YAML source'
-        : showThree
-          ? '3D preview'
-          : 'Preview';
+    this.dependencies.sourceView.hidden = showReport || (!split && !showSource);
+    getElement('view-title').textContent = showReport
+      ? 'Tile report'
+      : split
+        ? (showThree ? '3D preview' : 'Preview') + ' + YAML source'
+        : showSource
+          ? 'YAML source'
+          : showThree
+            ? '3D preview'
+            : 'Preview';
     requestAnimationFrame(() => this.drawCanvas());
   }
   public updateView() {

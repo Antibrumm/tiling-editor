@@ -6,6 +6,12 @@ The editor opens without a plan. Choose **Load template** to load the integrated
 
 Use the preview to inspect and edit the plan visually. Use the + and − controls to zoom and **Fit** to fit the drawing into the available preview. The canvas can be panned, and touch devices support pinch zoom.
 
+## Tile report
+
+Turn on **Report** above the preview to see every wall and its tile regions. The complete-room summary lists each selected tile type with its combined tile-region area and required tile count across all walls. Each wall shows its complete polygon area in square meters. Each tile region shows its visible area in square meters, selected tile name, and required tile count. Region areas include grout and are clipped by the wall outline and inset; later regions replace overlapping areas. Full-wall regions follow outline edits. Every partial tile counts as one, without reusing offcuts. Elements do not subtract tiling.
+
+The report updates when the plan changes. Walls without tile regions are listed too. Turn off **Report** to return to your previous preview or YAML view. Viewing the report does not change the plan or apply YAML drafts. Calculations that exceed the work limit show **Unavailable**.
+
 ## Selecting and moving walls and elements
 
 Select a wall or an element directly on the canvas. Selected items can be dragged to a new position. Positions are stored in whole millimeters. Elements are constrained to their wall outline while dragging.

@@ -47,6 +47,14 @@
               <h2 id="view-title">Preview</h2>
               <div style="display: flex; align-items: center; gap: 14px">
                 <label class="view-switch"
+                  ><span>Report</span
+                  ><input
+                    id="report-toggle"
+                    type="checkbox"
+                    role="switch"
+                    aria-label="Show tile report"
+                /></label>
+                <label class="view-switch"
                   ><span>3D preview</span
                   ><input
                     id="three-toggle"
@@ -73,6 +81,12 @@
               </div>
             </div>
             <div class="view-panels" id="view-panels">
+              <div
+                id="report-view"
+                class="tile-report"
+                hidden
+                aria-label="Wall and tile region report"
+              ></div>
               <div class="preview" id="preview" aria-label="Draggable, zoomable canvas preview">
                 <div class="canvas-stage" id="canvas-stage">
                   <canvas

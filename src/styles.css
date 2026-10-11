@@ -1186,3 +1186,66 @@ aside input[type='color'] {
     flex-wrap: wrap;
   }
 }
+
+.tile-report {
+  padding: 24px;
+  max-height: 75vh;
+  width: 100%;
+  overflow: auto;
+}
+.tile-report h2 {
+  margin: 0 0 12px;
+}
+.report-wall {
+  border-top: 1px solid #dce5e1;
+  margin-top: 24px;
+  padding-top: 16px;
+}
+.report-room-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  padding: 14px;
+  background: #eef5f1;
+  border-radius: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.report-wall h3 {
+  margin: 0 0 6px;
+}
+.report-wall-area {
+  color: #37574b;
+  margin: 0 0 14px;
+  font-weight: 600;
+}
+.report-table-wrap {
+  overflow-x: auto;
+}
+.tile-report table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.tile-report th,
+.tile-report td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid #dce5e1;
+}
+.tile-report thead {
+  background: #eef5f1;
+}
+.tile-report tbody th {
+  font-weight: 500;
+}
+.tile-report td:nth-child(2),
+.tile-report td:last-child {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.report-tile-totals caption {
+  text-align: left;
+  font-weight: 700;
+  margin-bottom: 10px;
+}

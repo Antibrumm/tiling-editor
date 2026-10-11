@@ -45,6 +45,7 @@ function init() {
   const interactionPlanSignal = signal<Plan | null>(null);
   const lightVisibleSignal = signal(false);
   const threePreviewVisibleSignal = signal(false);
+  const reportVisibleSignal = signal(false);
   const yamlEditingSignal = signal(false);
   const selectedWallIdSignal = signal<string | null>(null);
   const selectedLightIdSignal = signal<string | null>(null);
@@ -102,6 +103,13 @@ function init() {
     uiFeedback.message(`${baseline.name || 'Element'} reset.`);
   };
   const viewController: ViewController = new ViewController({
+    reportVisibleSignal,
+    get reportToggle() {
+      return reportToggle;
+    },
+    get reportView() {
+      return reportView;
+    },
     threePreviewVisibleSignal,
     get splitToggle() {
       return splitToggle;
@@ -203,6 +211,10 @@ function init() {
   getElement('clear-action-log').addEventListener('click', () => actionConsole.clear());
   actionConsole.log('Editor ready — no template loaded.');
   const controlPanel = new ControlPanel({
+    reportVisibleSignal,
+    get reportView() {
+      return reportView;
+    },
     threePreviewVisibleSignal,
     planService,
     uiFeedback,
@@ -259,6 +271,9 @@ function init() {
   });
 
   const threeToggle = getElement('three-toggle');
+  const reportToggle = getElement('report-toggle');
+  const reportView = getElement('report-view');
+  reportToggle.addEventListener('change', () => viewController.updateViewMode());
   const threeContainer = getElement('preview-3d');
   threeToggle.addEventListener('change', () => viewController.updateViewMode());
   const sourceToggle = getElement('source-toggle');

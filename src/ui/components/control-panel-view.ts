@@ -10,12 +10,17 @@ import { PatternCard } from './pattern-card';
 
 import { WallSection } from './wall-section';
 import { LightControls } from './light-controls';
+import { TileReport } from './tile-report';
 
 export function ControlPanelView({ context }: { context: ControlPanelDependencies }) {
   const plan = context.effectivePlan.value;
   return h(
     Fragment,
     null,
+    createPortal(
+      context.reportVisibleSignal.value && h(TileReport, { effectivePlan: context.effectivePlan }),
+      context.reportView,
+    ),
     createPortal(h(LightControls, { context }), context.lightControls),
     createPortal(
       h(

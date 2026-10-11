@@ -23,7 +23,7 @@ export const PatternRegions = ({
         {
           context,
           key: i,
-          title: r.fullWall ? `Pattern region ${i + 1} · Full wall` : `Pattern region ${i + 1}`,
+          title: r.fullWall ? `Tile region ${i + 1} · Full wall` : `Tile region ${i + 1}`,
           defaultOpen: true,
         },
         h(
@@ -116,6 +116,6 @@ export const PatternRegions = ({
             pattern: patterns[0]?.name || '',
           }),
       },
-      'Add pattern region',
+      'Add tile region',
     ),
   );

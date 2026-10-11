@@ -1,0 +1,139 @@
+import { h } from 'preact';
+import { useMemo } from 'preact/hooks';
+import type { ReadonlySignal } from '@preact/signals';
+import type { Plan } from '../../model/types';
+import { TileCounter } from '../../model/tile-counter';
+
+export function TileReport({ effectivePlan }: { effectivePlan: ReadonlySignal<Plan> }) {
+  const plan = effectivePlan.value;
+  const counter = useMemo(() => new TileCounter(), []);
+  const walls = plan.walls.map((wall) => ({ wall, result: counter.analyze(wall, plan.patterns) }));
+  const wallArea = walls.reduce((sum, { wall }) => sum + counter.wallAreaM2(wall), 0);
+  const complete = walls.every(({ result }) => result !== null);
+  const regionArea = walls.reduce(
+    (sum, { result }) =>
+      sum + (result?.regions.reduce((subtotal, region) => subtotal + region.areaM2, 0) ?? 0),
+    0,
+  );
+  const tileTypes = new Map<string, { areaM2: number; count: number; complete: boolean }>();
+  for (const { wall, result } of walls) {
+    wall.patternRegions.forEach((region, index) => {
+      if (!region.pattern) return;
+      const total = tileTypes.get(region.pattern) ?? { areaM2: 0, count: 0, complete: true };
+      const detail = result?.regions[index];
+      total.areaM2 += detail?.areaM2 ?? 0;
+      total.count += detail?.count ?? 0;
+      total.complete &&= detail !== undefined;
+      tileTypes.set(region.pattern, total);
+    });
+  }
+  const area = (value: number) =>
+    `${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })} m²`;
+  return h(
+    'div',
+    { class: 'tile-report-content' },
+    h('h2', null, plan.name),
+    h(
+      'p',
+      { class: 'report-room-summary' },
+      h('strong', null, 'Complete room'),
+      h('span', null, `Wall area: ${area(wallArea)}`),
+      h('span', null, `Tile region area: ${complete ? area(regionArea) : 'Unavailable'}`),
+    ),
+    tileTypes.size > 0 &&
+      h(
+        'div',
+        { class: 'report-table-wrap report-tile-totals' },
+        h(
+          'table',
+          null,
+          h('caption', null, 'Tiles needed for the complete room'),
+          h(
+            'thead',
+            null,
+            h(
+              'tr',
+              null,
+              ['Tile type', 'Area', 'Tiles needed'].map((label) =>
+                h('th', { scope: 'col', key: label }, label),
+              ),
+            ),
+          ),
+          h(
+            'tbody',
+            null,
+            [...tileTypes].map(([name, total]) =>
+              h(
+                'tr',
+                { key: name },
+                h('th', { scope: 'row' }, name),
+                h('td', null, total.complete ? area(total.areaM2) : 'Unavailable'),
+                h('td', null, total.complete ? total.count.toLocaleString() : 'Unavailable'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    h(
+      'p',
+      { class: 'hint' },
+      'Wall areas cover the complete outline. Tile region areas cover visible tiling, including grout, after inset and overlapping regions. Each partial tile counts as one; offcuts are not reused.',
+    ),
+    !plan.walls.length &&
+      h('p', { class: 'report-empty' }, 'Load a template or upload a plan to see its tile report.'),
+    walls.map(({ wall, result }) => {
+      return h(
+        'section',
+        { class: 'report-wall', key: wall.name },
+        h('h3', null, wall.name),
+        h('p', { class: 'report-wall-area' }, `Wall area: ${area(counter.wallAreaM2(wall))}`),
+        !wall.patternRegions.length
+          ? h('p', { class: 'hint' }, 'No tile regions.')
+          : h(
+              'div',
+              { class: 'report-table-wrap' },
+              h(
+                'table',
+                null,
+                h(
+                  'thead',
+                  null,
+                  h(
+                    'tr',
+                    null,
+                    ['Tile region', 'Area', 'Selected tile', 'Tiles needed'].map((label) =>
+                      h('th', { scope: 'col', key: label }, label),
+                    ),
+                  ),
+                ),
+                h(
+                  'tbody',
+                  null,
+                  wall.patternRegions.map((region, index) => {
+                    const detail = result?.regions[index];
+                    return h(
+                      'tr',
+                      { key: index },
+                      h(
+                        'th',
+                        { scope: 'row' },
+                        `Tile region ${index + 1}${region.fullWall ? ' · Full wall' : ''}`,
+                      ),
+                      h('td', null, detail ? area(detail.areaM2) : 'Unavailable'),
+                      h('td', null, region.pattern || 'No tile selected'),
+                      h('td', null, detail ? detail.count.toLocaleString() : 'Unavailable'),
+                    );
+                  }),
+                ),
+              ),
+            ),
+        !result &&
+          h(
+            'p',
+            { class: 'hint' },
+            'Region results are unavailable because this layout exceeds the calculation limit.',
+          ),
+      );
+    }),
+  );
+}
