@@ -32,9 +32,7 @@ export function WallSection({
     section = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
     if (selected && section.current) {
-      section.current.closest<HTMLDetailsElement>('#walls-section')!.open = true;
-      section.current.open = true;
-      section.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      context.sidebarSections.reveal(section.current);
     }
   }, [selected]);
   return h(

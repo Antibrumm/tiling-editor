@@ -3,6 +3,7 @@ import { ModelChangeLog } from './ui/model-change-log';
 import { ControlPanel } from './ui/control-panel';
 import { ReorderController } from './ui/reorder-controller';
 import { ConfirmationDialog } from './ui/confirmation-dialog';
+import { SidebarSections } from './ui/sidebar-sections';
 import { EditorState } from './ui/editor-state';
 import { ViewController } from './ui/view-controller';
 import { SourcePresentation } from './ui/source-presentation';
@@ -212,6 +213,7 @@ function init() {
   getElement('clear-action-log').addEventListener('click', () => actionConsole.clear());
   actionConsole.log('Editor ready — no template loaded.');
   const controlPanel = new ControlPanel({
+    sidebarSections: new SidebarSections(),
     reportVisibleSignal,
     get reportView() {
       return reportView;
@@ -673,6 +675,8 @@ function init() {
     painter: paintSurfacePattern,
     threePreview,
     button: getElement('print-result'),
+    pdfButton: getElement('download-pdf'),
+    downloadBaseName: () => titleController.downloadBaseName(),
     showLabels,
     showDimensions,
     showTileCounts,

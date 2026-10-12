@@ -6,6 +6,7 @@ import type { UiFeedback } from './feedback';
 import type { Selection } from './selection';
 import type { ReorderController } from './reorder-controller';
 import type { ConfirmationDialog } from './confirmation-dialog';
+import type { SidebarSections } from './sidebar-sections';
 /** Shared services, reactive state, and targets supplied to sidebar components. */
 export interface ControlPanelDependencies {
   planService: PlanService;
@@ -26,4 +27,5 @@ export interface ControlPanelDependencies {
   wallControls: HTMLElement;
   reorder: ReorderController;
   confirmation: ConfirmationDialog;
+  sidebarSections: SidebarSections;
 }

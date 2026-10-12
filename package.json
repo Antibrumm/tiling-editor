@@ -25,6 +25,8 @@
   "dependencies": {
     "@preact/signals": "2.11.2",
     "dompurify": "3.4.16",
+    "jspdf": "4.2.1",
+    "jspdf-autotable": "5.0.8",
     "marked": "18.1.0",
     "mermaid": "11.17.2",
     "preact": "10.29.8",

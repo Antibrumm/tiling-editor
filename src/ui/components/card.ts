@@ -24,10 +24,7 @@ export function Card({
     if (!selected) return;
     const node = ref.current;
     if (node) {
-      for (let parent = node.parentElement; parent; parent = parent.parentElement)
-        if (parent instanceof HTMLDetailsElement) parent.open = true;
-      node.open = true;
-      node.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      context.sidebarSections.reveal(node);
     }
   }, [selected]);
   return h(

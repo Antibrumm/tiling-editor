@@ -12,6 +12,10 @@ Turn on **Report** above the preview to see every wall and its tile regions. The
 
 The report updates when the plan changes. Walls without tile regions are listed too. Turn off **Report** to return to your previous preview or YAML view. Viewing the report does not change the plan or apply YAML drafts. Calculations that exceed the work limit show **Unavailable**.
 
+## Downloading a PDF
+
+Choose **Download PDF** to save the complete result directly, without a print dialog or server. The PDF contains the plan title, room totals by tile type, wall and tile-region tables with selectable text, and the fitted 2D and current 3D previews on separate A4 pages. Long tables continue across pages with repeated headers. The download works offline in the portable HTML and preserves the plan and unapplied YAML draft.
+
 ## Printing the result
 
 Choose **Print result** to open the browser print dialog, where you can print on paper or save as PDF. The document contains the plan title, complete room and wall report, a fitted 2D drawing, and the 3D preview on separate pages. The 2D drawing follows the Labels, Dimensions, and Tile counts display options. The 3D image uses the current camera angle, or the default fitted view if the preview has not been opened. Printing works from the report or YAML view and preserves the plan, camera angle, and unapplied YAML draft. If WebGL is unavailable, the document explains why the 3D image could not be included.

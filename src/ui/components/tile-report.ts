@@ -2,7 +2,7 @@ import { h } from 'preact';
 import { useMemo } from 'preact/hooks';
 import type { ReadonlySignal } from '@preact/signals';
 import type { Plan } from '../../model/types';
-import { TileCounter } from '../../model/tile-counter';
+import { TileReportService } from '../../model/tile-report-service';
 
 export function TileReport({
   effectivePlan,
@@ -12,27 +12,10 @@ export function TileReport({
   showTitle?: boolean;
 }) {
   const plan = effectivePlan.value;
-  const counter = useMemo(() => new TileCounter(), []);
-  const walls = plan.walls.map((wall) => ({ wall, result: counter.analyze(wall, plan.patterns) }));
-  const wallArea = walls.reduce((sum, { wall }) => sum + counter.wallAreaM2(wall), 0);
-  const complete = walls.every(({ result }) => result !== null);
-  const regionArea = walls.reduce(
-    (sum, { result }) =>
-      sum + (result?.regions.reduce((subtotal, region) => subtotal + region.areaM2, 0) ?? 0),
-    0,
-  );
-  const tileTypes = new Map<string, { areaM2: number; count: number; complete: boolean }>();
-  for (const { wall, result } of walls) {
-    wall.patternRegions.forEach((region, index) => {
-      if (!region.pattern) return;
-      const total = tileTypes.get(region.pattern) ?? { areaM2: 0, count: 0, complete: true };
-      const detail = result?.regions[index];
-      total.areaM2 += detail?.areaM2 ?? 0;
-      total.count += detail?.count ?? 0;
-      total.complete &&= detail !== undefined;
-      tileTypes.set(region.pattern, total);
-    });
-  }
+  const service = useMemo(() => new TileReportService(), []);
+  const { walls, wallAreaM2: wallArea, regionAreaM2, tileTypes } = service.analyze(plan);
+  const complete = regionAreaM2 !== null;
+  const regionArea = regionAreaM2 ?? 0;
   const area = (value: number) =>
     `${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })} m²`;
   return h(
@@ -87,12 +70,12 @@ export function TileReport({
     ),
     !plan.walls.length &&
       h('p', { class: 'report-empty' }, 'Load a template or upload a plan to see its tile report.'),
-    walls.map(({ wall, result }) => {
+    walls.map(({ wall, result, areaM2 }) => {
       return h(
         'section',
         { class: 'report-wall', key: wall.name },
         h('h3', null, wall.name),
-        h('p', { class: 'report-wall-area' }, `Wall area: ${area(counter.wallAreaM2(wall))}`),
+        h('p', { class: 'report-wall-area' }, `Wall area: ${area(areaM2)}`),
         !wall.patternRegions.length
           ? h('p', { class: 'hint' }, 'No tile regions.')
           : h(

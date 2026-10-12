@@ -64,6 +64,7 @@ const errors = [],
   vc = new VirtualConsole();
 const paintedTexts = [];
 let printCalls = 0;
+const pdfDownloads = [];
 vc.on('jsdomError', (e) => errors.push(e.message));
 const dom = new JSDOM(html, {
   runScripts: 'dangerously',
@@ -71,11 +72,19 @@ const dom = new JSDOM(html, {
   url: 'https://editor.test/',
   virtualConsole: vc,
   beforeParse(window) {
+    window.TextEncoder = TextEncoder;
+    window.TextDecoder = TextDecoder;
+    window.URL.createObjectURL = (blob) => {
+      pdfDownloads.push(blob);
+      return 'blob:https://editor.test/pdf';
+    };
+    window.URL.revokeObjectURL = () => {};
+    window.HTMLAnchorElement.prototype.click = () => {};
     window.print = () => {
       printCalls++;
     };
     window.HTMLCanvasElement.prototype.toDataURL = () =>
-      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=';
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4XmP4DwQACfsD/YcUtbcAAAAASUVORK5CYII=';
     window.ResizeObserver = class {
       observe() {}
     };
@@ -302,6 +311,8 @@ test('editor startup, controls, selection, and reactive 3D preview', async () =>
   const lightSection = document.getElementById('light-controls').closest('details');
   lightSection.open = false;
   test.selection.select({ type: 'wall', wallId: 'floor' });
+  for (const section of document.querySelectorAll('.wall-section, #light-controls .group-card'))
+    section.open = true;
   test.threePreview.scene.updateMatrixWorld(true);
   test.threePreview.camera.updateMatrixWorld(true);
   const aimScreen = firstLight.aimMarker.position.clone().project(test.threePreview.camera);
@@ -315,10 +326,25 @@ test('editor startup, controls, selection, and reactive 3D preview', async () =>
   assert.equal(test.editorState.selectedWallId, null, 'Light selection clears surface selection');
   assert(lightSection.open, 'Selecting a light opens its sidebar section');
   assert(document.querySelector('#light-controls .group-card.selected'));
+  assert(
+    [...document.querySelectorAll('.wall-section')].every((section) => !section.open),
+    'Selecting a light collapses wall sections',
+  );
+  assert(
+    [...document.querySelectorAll('#light-controls .group-card:not(.selected)')].every(
+      (section) => !section.open,
+    ),
+    'Selecting a light collapses other lights',
+  );
   assert.equal(firstLight.marker.material.color.getHexString(), '37ae69');
   test.selection.select({ type: 'wall', wallId: 'floor' });
   await wait();
   assert.equal(test.editorState.selectedLightId, null, 'Surface selection clears light selection');
+  assert(!lightSection.open, 'Selecting a wall collapses the light controls');
+  assert(
+    [...document.querySelectorAll('.wall-section')].filter((section) => section.open).length === 1,
+    'Selection opens only the selected wall section',
+  );
   assert.equal(firstLight.marker.material.color.getHexString(), 'ffba45');
   document.getElementById('three-fit').click();
   assert(
@@ -586,5 +612,17 @@ test('editor startup, controls, selection, and reactive 3D preview', async () =>
     null,
     'Print staging is cleared after printing',
   );
+  document.getElementById('download-pdf').click();
+  await wait();
+  assert.equal(pdfDownloads.length, 1, document.getElementById('status').textContent);
+  assert.equal(pdfDownloads[0].type, 'application/pdf');
+  assert(pdfDownloads[0].size > 1000);
+  assert.equal(printCalls, 1, 'PDF download skips the print dialog');
+  assert.deepStrictEqual(
+    test.planService.snapshot(),
+    beforePrint,
+    'PDF export preserves plan data',
+  );
+  assert.equal(source.value, 'draft yaml', 'PDF export preserves the YAML draft');
   assert.deepStrictEqual(errors, []);
 });

@@ -48,6 +48,7 @@ test('production assets, documentation, and template startup', async () => {
       url: base,
       virtualConsole,
       beforeParse(window) {
+        window.fetch = (input, options) => fetch(new URL(input, base), options);
         window.ResizeObserver = class {
           observe() {}
         };

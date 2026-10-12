@@ -38,6 +38,7 @@ interface EditorElements {
   download: HTMLButtonElement;
   'download-png': HTMLButtonElement;
   'print-result': HTMLButtonElement;
+  'download-pdf': HTMLButtonElement;
   'download-yaml': HTMLButtonElement;
   copy: HTMLButtonElement;
   reset: HTMLButtonElement;

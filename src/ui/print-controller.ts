@@ -16,6 +16,8 @@ interface PrintDependencies {
   painter: PatternPainter;
   threePreview: ThreePreview;
   button: HTMLButtonElement;
+  pdfButton: HTMLButtonElement;
+  downloadBaseName(): string;
   showLabels: HTMLInputElement;
   showDimensions: HTMLInputElement;
   showTileCounts: HTMLInputElement;
@@ -30,23 +32,18 @@ export class PrintController {
     dependencies.button.addEventListener('click', () => {
       void this.print();
     });
+    dependencies.pdfButton.addEventListener('click', () => {
+      void this.downloadPdf();
+    });
     window.addEventListener('afterprint', () => this.clear());
   }
 
   public async print() {
     if (this.dependencies.button.disabled) return;
-    this.dependencies.button.disabled = true;
+    this.setBusy(true);
     this.dependencies.message('Preparing print document…');
     try {
-      const plan = structuredClone(this.dependencies.plan());
-      await this.dependencies.painter.prepare(plan.patterns);
-      const drawing = this.captureDrawing(plan);
-      let preview: string | null = null;
-      try {
-        preview = await this.dependencies.threePreview.capture(plan);
-      } catch {
-        /* The report remains printable without WebGL. */
-      }
+      const { plan, drawing, preview } = await this.prepare();
       this.clear();
       const root = document.createElement('main');
       root.id = 'print-document';
@@ -91,8 +88,49 @@ export class PrintController {
         `Could not prepare print document: ${error instanceof Error ? error.message : String(error)}`,
       );
     } finally {
-      this.dependencies.button.disabled = false;
+      this.setBusy(false);
     }
+  }
+
+  public async downloadPdf() {
+    if (this.dependencies.pdfButton.disabled) return;
+    this.setBusy(true);
+    this.dependencies.message('Preparing PDF…');
+    try {
+      const { plan, drawing, preview } = await this.prepare();
+      const { PdfReport } = await import('../codecs/pdf-report');
+      const buffer = new PdfReport().generate(plan, drawing, preview);
+      const url = URL.createObjectURL(new Blob([buffer], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${this.dependencies.downloadBaseName()}.pdf`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      this.dependencies.message('PDF downloaded.');
+    } catch (error) {
+      this.dependencies.message(
+        `Could not create PDF: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    } finally {
+      this.setBusy(false);
+    }
+  }
+
+  private setBusy(value: boolean) {
+    this.dependencies.button.disabled = this.dependencies.pdfButton.disabled = value;
+  }
+
+  private async prepare() {
+    const plan = structuredClone(this.dependencies.plan());
+    await this.dependencies.painter.prepare(plan.patterns);
+    const drawing = this.captureDrawing(plan);
+    let preview: string | null = null;
+    try {
+      preview = await this.dependencies.threePreview.capture(plan);
+    } catch {
+      /* Export the report even if WebGL is unavailable. */
+    }
+    return { plan, drawing, preview };
   }
 
   private captureDrawing(plan: Plan): string {
