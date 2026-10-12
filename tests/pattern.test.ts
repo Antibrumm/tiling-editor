@@ -6,8 +6,8 @@ import { SvgCodec } from '../src/codecs/svg';
 import { PatternRegionGeometry } from '../src/model/pattern-region-geometry';
 import { TileCounter } from '../src/model/tile-counter';
 
-let service;
-let dom;
+let service: PlanService;
+let dom: JSDOM | undefined;
 const yamlCodec = new YamlCodec();
 const svgCodec = new SvgCodec();
 
@@ -61,7 +61,7 @@ describe('wall patterns', () => {
     expect(service.addPatternRegion('wall', { fullWall: true, pattern: 'grid' })).toBe(true);
   });
   test('migrates legacy outline tiling once and follows outline edits', () => {
-    const wall = service.wall('wall');
+    const wall = service.wall('wall')!;
     expect(wall.patternRegions).toHaveLength(2);
     expect(wall.patternRegions[0]).toMatchObject({ fullWall: true, pattern: 'grid' });
     expect(wall.patternRegions[1]).toMatchObject({ fullWall: false, width: 20 });
@@ -83,7 +83,7 @@ describe('wall patterns', () => {
       width: 200,
       height: 100,
     });
-    expect(new TileCounter().count(wall, service.data.patterns).total).toBe(200);
+    expect(new TileCounter().count(wall, service.data.patterns)!.total).toBe(200);
     const saved = service.snapshot();
     const yaml = yamlCodec.encode(saved);
     expect(yaml.split('    outline:')[1].split('    patternRegions:')[0]).not.toMatch(
@@ -93,9 +93,9 @@ describe('wall patterns', () => {
     const roundTrip = yamlCodec.decode(yaml);
     service.replaceData(roundTrip);
     expect(service.snapshot()).toEqual(saved);
-    expect(service.wall('wall').patternRegions).toHaveLength(2);
+    expect(service.wall('wall')!.patternRegions).toHaveLength(2);
     service.setPatternRegion('wall', 0, 'fullWall', false);
-    expect(service.wall('wall').patternRegions[0]).toMatchObject({
+    expect(service.wall('wall')!.patternRegions[0]).toMatchObject({
       fullWall: false,
       x: -20,
       y: -10,
@@ -109,7 +109,7 @@ describe('wall patterns', () => {
       [0, 300],
     ]);
     expect(
-      geometry.resolve(service.wall('wall'), service.wall('wall').patternRegions[0]).width,
+      geometry.resolve(service.wall('wall')!, service.wall('wall')!.patternRegions[0]).width,
     ).toBe(200);
   });
 
@@ -140,10 +140,10 @@ describe('wall patterns', () => {
   });
 
   test('defaults to zero rotation and inset', () => {
-    expect(service.wall('wall').outline).not.toHaveProperty('patternRotation');
-    expect(service.wall('wall').patternRegions[0].fullWall).toBe(true);
-    expect(service.wall('wall').outline.patternInset).toBe(0);
-    expect(service.wall('wall').patternRegions[0].patternRotation).toBe(0);
+    expect(service.wall('wall')!.outline).not.toHaveProperty('patternRotation');
+    expect(service.wall('wall')!.patternRegions[0].fullWall).toBe(true);
+    expect(service.wall('wall')!.outline.patternInset).toBe(0);
+    expect(service.wall('wall')!.patternRegions[0].patternRotation).toBe(0);
   });
 
   test('edits and saves wall and region rotation', () => {
@@ -157,11 +157,11 @@ describe('wall patterns', () => {
 
   test('validates perimeter inset edits', () => {
     expect(service.setOutlineValue('wall', 'patternInset', 5)).toBe(true);
-    expect(service.wall('wall').outline.patternInset).toBe(5);
+    expect(service.wall('wall')!.outline.patternInset).toBe(5);
     expect(service.setOutlineValue('wall', 'patternInset', Infinity)).toBe(false);
-    expect(service.wall('wall').outline.patternInset).toBe(5);
+    expect(service.wall('wall')!.outline.patternInset).toBe(5);
     expect(service.setOutlineValue('wall', 'patternInset', -2)).toBe(true);
-    expect(service.wall('wall').outline.patternInset).toBe(0);
+    expect(service.wall('wall')!.outline.patternInset).toBe(0);
   });
 
   test.each(['grid', ''])('round trips complete YAML/SVG settings with pattern "%s"', (pattern) => {
@@ -185,15 +185,25 @@ describe('wall patterns', () => {
     const svg = svgCodec.encode(saved);
     expect(svgCodec.decode(svg)).toEqual(saved);
     const parsed = new dom.window.DOMParser().parseFromString(svg, 'image/svg+xml');
-    expect(parsed.querySelector('mask polygon').getAttribute('stroke-width')).toBe('10');
-    expect(parsed.querySelector('mask polygon').getAttribute('stroke-linejoin')).toBe('miter');
-    if (pattern)
-      expect(parsed.querySelector('pattern[href="#grid"]').getAttribute('patternTransform')).toBe(
-        'translate(8 3) rotate(37)',
-      );
-    expect(parsed.querySelector('pattern[id$="region-1"]').getAttribute('patternTransform')).toBe(
-      'translate(1 12) rotate(123)',
+    expect(parsed.querySelector<HTMLElement>('mask polygon')!.getAttribute('stroke-width')).toBe(
+      '10',
     );
-    expect(parsed.querySelector('g[mask] rect:last-child').getAttribute('width')).toBe('20');
+    expect(parsed.querySelector<HTMLElement>('mask polygon')!.getAttribute('stroke-linejoin')).toBe(
+      'miter',
+    );
+    if (pattern)
+      expect(
+        parsed
+          .querySelector<HTMLElement>('pattern[href="#grid"]')!
+          .getAttribute('patternTransform'),
+      ).toBe('translate(8 3) rotate(37)');
+    expect(
+      parsed
+        .querySelector<HTMLElement>('pattern[id$="region-1"]')!
+        .getAttribute('patternTransform'),
+    ).toBe('translate(1 12) rotate(123)');
+    expect(
+      parsed.querySelector<HTMLElement>('g[mask] rect:last-child')!.getAttribute('width'),
+    ).toBe('20');
   });
 });

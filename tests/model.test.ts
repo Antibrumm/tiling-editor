@@ -1,3 +1,6 @@
+import type { PlanChange } from '../src/model/events';
+import type { Light } from '../src/model/types';
+import { createPatternPainter } from '../src/rendering/pattern-painter';
 import { test, vi, afterEach } from 'vitest';
 import fs from 'node:fs';
 import assert from 'node:assert';
@@ -10,7 +13,7 @@ import { ThreePreview } from '../src/rendering/three-preview';
 
 afterEach(() => vi.unstubAllGlobals());
 
-test.each(['directional', 'conic'])(
+test.each(['directional', 'conic'] as const)(
   'calculates whole-millimeter aims for new %s lights',
   (type) => {
     const service = new PlanService({
@@ -31,7 +34,7 @@ test.each(['directional', 'conic'])(
       lights3d: [{ id: 'custom', aimX: -12.25, aimY: 34.75, aimZ: 0.125 }],
     });
     const id = service.addLight(type);
-    const added = service.data.lights3d.find((light) => light.id === id);
+    const added = service.data.lights3d.find((light) => light.id === id)!;
     assert.deepStrictEqual([added.aimX, added.aimY, added.aimZ], [256, 344, 501]);
     assert.deepStrictEqual(
       service.data.lights3d.slice(0, 1).map(({ aimX, aimY, aimZ }) => [aimX, aimY, aimZ]),
@@ -43,14 +46,17 @@ test.each(['directional', 'conic'])(
 );
 
 test('plan validation, placement, light lifecycle, geometry, and mesh reuse', () => {
-  const elements = new Map(),
+  const elements = new Map<string, Record<string, unknown>>(),
     document = {
-      getElementById: (id) => {
+      getElementById: (id: string) => {
         if (!elements.has(id)) elements.set(id, {});
-        return elements.get(id);
+        return elements.get(id)!;
       },
     };
   const context = {
+    yamlCodec: new YamlCodec(),
+    scenePlacement: new ScenePlacement(),
+    objectLayers: new ObjectLayers(),
     console,
     structuredClone,
     document,
@@ -58,21 +64,17 @@ test('plan validation, placement, light lifecycle, geometry, and mesh reuse', ()
       observe() {}
     },
     requestAnimationFrame() {},
-    number: (n) => String(n),
+    number: (n: number) => String(n),
     publishPersistentPlan() {},
     lightVisibleSignal: { value: false },
     selectedWallIdSignal: { value: null },
     selectedObjectIndexSignal: { value: null },
   };
-  Object.assign(context, { PlanService, ScenePlacement, ObjectLayers, YamlCodec, ThreePreview });
-  context.yamlCodec = new context.YamlCodec();
-  context.scenePlacement = new context.ScenePlacement();
-  context.objectLayers = new context.ObjectLayers();
   // Extracted services must publish independently, without editor globals.
   let publications = 0;
-  const independent = new context.PlanService({}, () => publications++);
-  const untouched = new context.PlanService();
-  const changes = [];
+  const independent = new PlanService({}, () => publications++);
+  const untouched = new PlanService();
+  const changes: PlanChange[] = [];
   const unsubscribe = independent.onEvent((change) => changes.push(change));
   independent.setName('Independent plan');
   assert.equal(publications, 1);
@@ -87,7 +89,7 @@ test('plan validation, placement, light lifecycle, geometry, and mesh reuse', ()
   independent.setName('Renamed');
   assert.equal(publications, 2);
   assert.equal(changes.length, 1);
-  const service = new context.PlanService({
+  const service = new PlanService({
     patterns: [{ name: 'grid', tileWidth: 300, tileHeight: 300 }],
     walls: [
       {
@@ -117,7 +119,6 @@ test('plan validation, placement, light lifecycle, geometry, and mesh reuse', ()
       },
     ],
   });
-  context.planService = service;
   assert.equal(service.data.walls[0].placement3d, null);
   assert.equal(
     context.scenePlacement.effective(service.data, service.data.walls[0], 0).type,
@@ -130,7 +131,7 @@ test('plan validation, placement, light lifecycle, geometry, and mesh reuse', ()
   service.setObjectValue('floor', 0, 'depth', 450);
   assert.equal(service.data.lights3d[0].aimX, 1500);
   assert.equal(service.data.lights3d[0].aimY, 1000);
-  const aimed = new context.PlanService({
+  const aimed = new PlanService({
     upAxis3d: 'z',
     walls: [
       {
@@ -153,14 +154,14 @@ test('plan validation, placement, light lifecycle, geometry, and mesh reuse', ()
   assert.equal(center.aimZ, 500);
   aimed.setLightValue(center.id, 'aimX', 9999);
   const added = aimed.addLight(),
-    newLight = aimed.data.lights3d.find((light) => light.id === added);
+    newLight = aimed.data.lights3d.find((light) => light.id === added)!;
   assert(
     Math.abs(newLight.aimX + 700) < 1e-9,
     'New lights aim at the floor instead of inheriting a changed aim',
   );
   assert.equal(newLight.aimZ, 500);
   assert.equal(
-    new context.PlanService(aimed.snapshot()).data.lights3d[0].aimX,
+    new PlanService(aimed.snapshot()).data.lights3d[0].aimX,
     9999,
     'Explicit saved aims are retained',
   );
@@ -195,15 +196,12 @@ test('plan validation, placement, light lifecycle, geometry, and mesh reuse', ()
   );
   assert.equal(migrated.lights3d[0].angle, 60);
   assert.throws(
-    () => new context.PlanService({ lights3d: [{ type: 'unknown' }] }),
+    () => new PlanService({ lights3d: [{ type: 'unknown' as Light['type'] }] }),
     /Unknown light type/,
   );
   for (const angle of [0, 180, Infinity, 'invalid'])
-    assert.throws(
-      () => new context.PlanService({ lights3d: [{ type: 'conic', angle }] }),
-      /cone angle/,
-    );
-  const duplicated = new context.PlanService({
+    assert.throws(() => new PlanService({ lights3d: [{ type: 'conic', angle }] }), /cone angle/);
+  const duplicated = new PlanService({
     lights3d: [{ id: 'same' }, { id: 'same' }, { id: 'same-2' }],
   });
   assert.equal(new Set(duplicated.data.lights3d.map((light) => light.id)).size, 3);
@@ -216,8 +214,8 @@ test('plan validation, placement, light lifecycle, geometry, and mesh reuse', ()
   vi.stubGlobal('document', document);
   vi.stubGlobal('ResizeObserver', context.ResizeObserver);
   vi.stubGlobal('requestAnimationFrame', context.requestAnimationFrame);
-  const preview = new context.ThreePreview(
-    { hidden: false, clientWidth: 1000, clientHeight: 600 },
+  const preview = new ThreePreview(
+    { hidden: false, clientWidth: 1000, clientHeight: 600 } as HTMLElement,
     {
       plan: () => service.snapshot(),
       showLights: () => context.lightVisibleSignal.value,
@@ -229,18 +227,18 @@ test('plan validation, placement, light lifecycle, geometry, and mesh reuse', ()
       selectedLight: () => null,
       select() {},
     },
-    () => {},
+    createPatternPainter(() => {}),
   );
   preview.THREE = THREE;
   preview.scene = new THREE.Scene();
-  preview.renderer = {};
-  preview.bake = () => new THREE.Texture();
+  preview.renderer = {} as THREE.WebGLRenderer;
+  preview.bake = () => new THREE.CanvasTexture({} as HTMLCanvasElement);
   preview.fit = () => {};
   preview.render = () => {};
   preview.update(service.snapshot());
   preview.scene.updateMatrixWorld(true);
   assert.equal(preview.lights.size, 2);
-  const secondEntry = preview.lights.get(secondLight);
+  const secondEntry = preview.lights.get(secondLight)!;
   assert.equal(secondEntry.light.color.getHexString(), 'ff8040');
   assert.equal(secondEntry.light.intensity, 0.75);
   service.setLightValue(secondLight, 'intensity', 0);
@@ -263,7 +261,7 @@ test('plan validation, placement, light lifecycle, geometry, and mesh reuse', ()
     context.yamlCodec.decode(context.yamlCodec.encode(service.snapshot())).lights3d.length,
     0,
   );
-  const floor = preview.entries.get('floor');
+  const floor = preview.entries.get('floor')!;
   const coneId = service.addLight('conic');
   assert.equal(service.setLightValue(coneId, 'angle', 80), true);
   for (const angle of [0, 180, Infinity, 'invalid'])
@@ -271,7 +269,7 @@ test('plan validation, placement, light lifecycle, geometry, and mesh reuse', ()
   assert.equal(service.setLightValue(coneId, 'type', 'point'), false);
   service.setLightValue(coneId, 'intensity', 3);
   preview.update(service.snapshot());
-  const coneEntry = preview.lights.get(coneId);
+  const coneEntry = preview.lights.get(coneId)!;
   assert(coneEntry.light instanceof THREE.SpotLight);
   assert(coneEntry.helper instanceof THREE.SpotLightHelper);
   assert.equal(coneEntry.light.angle, (80 * Math.PI) / 360);
@@ -284,7 +282,11 @@ test('plan validation, placement, light lifecycle, geometry, and mesh reuse', ()
   assert.equal(coneEntry.marker.visible, false);
   service.setLightValue(coneId, 'angle', 30);
   preview.update(service.snapshot());
-  assert.equal(preview.lights.get(coneId), coneEntry, 'Angle edits reuse the spotlight and helper');
+  assert.equal(
+    preview.lights.get(coneId)!,
+    coneEntry,
+    'Angle edits reuse the spotlight and helper',
+  );
   assert.equal(coneEntry.light.angle, (30 * Math.PI) / 360);
   const roundTripLights = context.yamlCodec.decode(
     context.yamlCodec.encode(service.snapshot()),
@@ -295,7 +297,7 @@ test('plan validation, placement, light lifecycle, geometry, and mesh reuse', ()
   service.setLightValue(coneId, 'type', 'directional');
   preview.update(service.snapshot());
   assert(coneDisposed, 'Changing light type disposes the previous marker resources');
-  assert(preview.lights.get(coneId).light instanceof THREE.DirectionalLight);
+  assert(preview.lights.get(coneId)!.light instanceof THREE.DirectionalLight);
   assert(!preview.scene.children.includes(coneEntry.light));
   assert(!preview.scene.children.includes(coneEntry.helper));
   service.removeLight(coneId);
@@ -306,13 +308,13 @@ test('plan validation, placement, light lifecycle, geometry, and mesh reuse', ()
     Math.abs(point.x - 1.123) < 1e-9 && Math.abs(point.y - 2) < 1e-9 && Math.abs(point.z) < 1e-9,
     'Floor local XY maps to world XY',
   );
-  const box = floor.surface.children.find((n) => n.userData.type === 'object');
+  const box = floor.surface.children.find((n) => n.userData.type === 'object')!;
   const boxCenter = new THREE.Vector3().setFromMatrixPosition(box.matrixWorld);
   assert(boxCenter.z > 0, 'Floor boxes rise along Z');
-  const back = preview.entries.get('back');
+  const back = preview.entries.get('back')!;
   const wallTop = new THREE.Vector3(0, 2, 0).applyMatrix4(back.mesh.matrixWorld);
   assert(Math.abs(wallTop.z - 2) < 1e-9, 'Wall height maps to world Z');
-  const legacy = new context.PlanService({
+  const legacy = new PlanService({
     walls: [{ name: 'legacy', placement3d: { type: 'wall', x: 10, y: 400, z: 2000, yaw: 90 } }],
   });
   assert.deepStrictEqual(
@@ -323,10 +325,10 @@ test('plan validation, placement, light lifecycle, geometry, and mesh reuse', ()
   assert.equal(legacy.data.upAxis3d, 'z');
   const previous = floor.group;
   preview.update(service.snapshot());
-  assert.strictEqual(preview.entries.get('floor').group, previous, 'Unchanged meshes are reused');
+  assert.strictEqual(preview.entries.get('floor')!.group, previous, 'Unchanged meshes are reused');
   service.setObjectValue('floor', 0, 'width', 180);
   preview.update(service.snapshot());
-  assert.notStrictEqual(preview.entries.get('floor').group, previous, 'Changed objects rebuild');
+  assert.notStrictEqual(preview.entries.get('floor')!.group, previous, 'Changed objects rebuild');
   service.removeWall('back');
   preview.update(service.snapshot());
   assert.equal(preview.entries.size, 1, 'Removed surfaces are disposed');
@@ -343,7 +345,7 @@ test('plan validation, placement, light lifecycle, geometry, and mesh reuse', ()
     'armor-back': [-1, 0, 0],
   };
   for (const [name, direction] of Object.entries(inward)) {
-    const entry = preview.entries.get(name),
+    const entry = preview.entries.get(name)!,
       actual = new THREE.Vector3(0, 0, 1).transformDirection(entry.surface.matrixWorld);
     assert(actual.distanceTo(new THREE.Vector3(...direction)) < 1e-9, name + ' extrudes inward');
   }
@@ -368,10 +370,10 @@ test('plan validation, placement, light lifecycle, geometry, and mesh reuse', ()
       'Exterior uses the white face',
     );
   }
-  const floorPoints = example.walls.find((w) => w.name === 'floor').outline.points;
+  const floorPoints = example.walls.find((w) => w.name === 'floor')!.outline.points;
   for (const name of Object.keys(inward)) {
-    const wall = example.walls.find((w) => w.name === name),
-      entry = preview.entries.get(name),
+    const wall = example.walls.find((w) => w.name === name)!,
+      entry = preview.entries.get(name)!,
       width = Math.max(...wall.outline.points.map((p) => p[0]));
     for (const x of [0, width]) {
       const endpoint = new THREE.Vector3(x / 1000, 0, 0).applyMatrix4(entry.mesh.matrixWorld);
@@ -387,7 +389,7 @@ test('plan validation, placement, light lifecycle, geometry, and mesh reuse', ()
     example.walls.every((w) => w.objects.every((o) => o.depth === 10)),
     'Example objects initially have 10 mm depth',
   );
-  const layers = new context.PlanService({
+  const layers = new PlanService({
     walls: [
       {
         name: 'nested',
@@ -411,11 +413,15 @@ test('plan validation, placement, light lifecycle, geometry, and mesh reuse', ()
   });
   preview.update(layers.snapshot());
   const nested = preview.entries
-    .get('nested')
-    .surface.children.filter((n) => n.userData.type === 'object');
-  const named = (name) => nested.find((n) => n.userData.objectName === name);
-  const backFace = (box) => box.position.z - box.geometry.parameters.depth / 2;
-  const frontFace = (box) => box.position.z + box.geometry.parameters.depth / 2;
+    .get('nested')!
+    .surface.children.filter(
+      (n): n is THREE.Mesh<THREE.BoxGeometry> => n.userData.type === 'object',
+    );
+  const named = (name: string) => nested.find((n) => n.userData.objectName === name)!;
+  const backFace = (box: THREE.Mesh<THREE.BoxGeometry>) =>
+    box.position.z - box.geometry.parameters.depth / 2;
+  const frontFace = (box: THREE.Mesh<THREE.BoxGeometry>) =>
+    box.position.z + box.geometry.parameters.depth / 2;
   assert(backFace(named('middle')) > frontFace(named('container')));
   assert(backFace(named('small')) > frontFace(named('middle')));
   assert(backFace(named('partial')) > frontFace(named('container')));

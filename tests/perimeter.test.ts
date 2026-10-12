@@ -1,14 +1,15 @@
+import type { Point, Pattern } from '../src/model/types';
 import { afterEach, expect, test, vi } from 'vitest';
 import { PerimeterClipper } from '../src/rendering/perimeter-clipper';
 import { createPatternPainter } from '../src/rendering/pattern-painter';
 
-const square = [
+const square: Point[] = [
   [0, 0],
   [100, 0],
   [100, 100],
   [0, 100],
 ];
-const stepped = [
+const stepped: Point[] = [
   [0, 0],
   [100, 0],
   [100, 40],
@@ -18,7 +19,7 @@ const stepped = [
 ];
 const clipper = new PerimeterClipper();
 
-function contains(polygon, [x, y]) {
+function contains(polygon: Point[], [x, y]: Point) {
   let inside = false;
   for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
     const [ax, ay] = polygon[i],
@@ -38,7 +39,7 @@ test.each(
   'insets concave corners with square joins regardless of winding or repeated endpoints',
   ({ points }) => {
     const bands = clipper.bands(points, 5);
-    const untiled = (point) => bands.some((band) => contains(band, point));
+    const untiled = (point: Point) => bands.some((band) => contains(band, point));
     expect(untiled([36, 36])).toBe(true);
     expect(untiled([34, 34])).toBe(false);
     expect(untiled([4, 70])).toBe(true);
@@ -47,7 +48,7 @@ test.each(
 );
 
 test('keeps diagonal edge distances and handles zero and oversized insets', () => {
-  const triangle = [
+  const triangle: Point[] = [
     [0, 0],
     [100, 0],
     [0, 100],
@@ -91,13 +92,33 @@ test.each([false, true])(
       ...(region ? { perimeterPoints: square } : {}),
     };
     const patterns = new Map([
-      ['grid', { tileWidth: 10, tileHeight: 10, borderSize: 0, tileColor: 'red', tileTexture: '' }],
+      [
+        'grid',
+        {
+          name: 'grid',
+          tileWidth: 10,
+          tileHeight: 10,
+          borderSize: 0,
+          tileColor: 'red',
+          borderColor: '',
+          tileTexture: '',
+          randomTextureRotation: false,
+        } satisfies Pattern,
+      ],
     ]);
-    paint(ctx, {}, surface, patterns, null, 1, 1);
+    paint(ctx as unknown as CanvasRenderingContext2D, {} as Path2D, surface, patterns, null, 1, 1);
     expect(ctx.translate).toHaveBeenCalledWith(8, 3);
     expect(ctx.rotate).toHaveBeenCalledWith(Math.PI / 2);
     ctx.translate.mockClear();
-    paint(ctx, {}, { ...surface, patternInset: 0 }, patterns, null, 1, 1);
+    paint(
+      ctx as unknown as CanvasRenderingContext2D,
+      {} as Path2D,
+      { ...surface, patternInset: 0 },
+      patterns,
+      null,
+      1,
+      1,
+    );
     expect(ctx.translate).toHaveBeenCalledWith(3, -2);
   },
 );

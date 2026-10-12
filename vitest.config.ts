@@ -9,8 +9,8 @@ export default defineConfig({
         test: {
           name: 'regression',
           environment: 'node',
-          include: ['tests/**/*.{test,spec}.{js,ts}'],
-          exclude: ['tests/build.test.js', 'tests/portable.test.js'],
+          include: ['tests/**/*.{test,spec}.ts'],
+          exclude: ['tests/build.test.ts', 'tests/portable.test.ts'],
           testTimeout: 15000,
         },
       },
@@ -18,7 +18,7 @@ export default defineConfig({
         test: {
           name: 'built',
           environment: 'node',
-          include: ['tests/build.test.js', 'tests/portable.test.js'],
+          include: ['tests/build.test.ts', 'tests/portable.test.ts'],
           testTimeout: 15000,
         },
       },

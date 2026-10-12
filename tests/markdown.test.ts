@@ -13,8 +13,10 @@ test('renders Markdown formatting and sanitizes untrusted HTML', () => {
   }).outputFiles[0].text;
   const dom = new JSDOM('<article></article>', { runScripts: 'outside-only' });
   try {
-    const renderer = dom.window.eval(bundle + '\nMarkdownRenderer;');
-    const article = dom.window.document.querySelector('article');
+    const renderer = dom.window.eval(
+      bundle + '\nMarkdownRenderer;',
+    ) as typeof import('../src/ui/markdown');
+    const article = dom.window.document.querySelector<HTMLElement>('article')!;
     article.innerHTML = renderer.renderMarkdown(`## Example
 
 **Bold** and \`code\` with [a link](https://example.com).
@@ -26,12 +28,18 @@ test('renders Markdown formatting and sanitizes untrusted HTML', () => {
 <img src="image.png" onerror="alert('unsafe')">
 [Unsafe link](javascript:alert(1))
 `);
-    assert.equal(article.querySelector('h2').textContent, 'Example');
-    assert.equal(article.querySelector('strong').textContent, 'Bold');
-    assert.equal(article.querySelector('code').textContent, 'code');
-    assert.equal(article.querySelectorAll('li').length, 2);
-    assert.equal(article.querySelector('a').getAttribute('href'), 'https://example.com');
-    assert.equal(article.querySelector('script, [onerror], a[href^="javascript:"]'), null);
+    assert.equal(article.querySelector<HTMLElement>('h2')!.textContent, 'Example');
+    assert.equal(article.querySelector<HTMLElement>('strong')!.textContent, 'Bold');
+    assert.equal(article.querySelector<HTMLElement>('code')!.textContent, 'code');
+    assert.equal(article.querySelectorAll<HTMLElement>('li').length, 2);
+    assert.equal(
+      article.querySelector<HTMLAnchorElement>('a')!.getAttribute('href'),
+      'https://example.com',
+    );
+    assert.equal(
+      article.querySelector<HTMLAnchorElement>('script, [onerror], a[href^="javascript:"]')!,
+      null,
+    );
   } finally {
     dom.window.close();
   }

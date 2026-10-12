@@ -1,14 +1,20 @@
+import assert from 'node:assert/strict';
+import type { Point, OutlineInput, PatternInput } from '../src/model/types';
 import { test, expect } from 'vitest';
 import { PlanService } from '../src/model/plan-service';
 import { TileCounter } from '../src/model/tile-counter';
 
-const rectangle = (width, height) => [
+const rectangle = (width: number, height: number): Point[] => [
   [0, 0],
   [width, 0],
   [width, height],
   [0, height],
 ];
-function fixture(points = rectangle(200, 200), outline = {}, patterns = []) {
+function fixture(
+  points = rectangle(200, 200),
+  outline: OutlineInput = {},
+  patterns: PatternInput[] = [],
+) {
   const service = new PlanService({
     patterns: [{ name: 'tile', tileWidth: 100, tileHeight: 100, borderSize: 0 }, ...patterns],
     walls: [{ name: 'wall', outline: { points, pattern: 'tile', ...outline } }],
@@ -16,8 +22,10 @@ function fixture(points = rectangle(200, 200), outline = {}, patterns = []) {
   const plan = service.snapshot();
   return { wall: plan.walls[0], patterns: plan.patterns };
 }
-function count(fixture) {
-  return new TileCounter().count(fixture.wall, fixture.patterns);
+function count(input: ReturnType<typeof fixture>) {
+  const result = new TileCounter().count(input.wall, input.patterns)!;
+  assert(result);
+  return result;
 }
 
 test('reports wall and visible tile-region areas in square meters with individual counts', () => {
@@ -35,14 +43,14 @@ test('reports wall and visible tile-region areas in square meters with individua
     patternY: 0,
     patternRotation: 0,
   });
-  const result = new TileCounter().analyze(f.wall, f.patterns);
+  const result = new TileCounter().analyze(f.wall, f.patterns)!;
   expect(result.areaM2).toBe(2);
   expect(result.regions).toEqual([
     { index: 0, pattern: 'tile', areaM2: 0.72, count: 72 },
     { index: 1, pattern: 'large', areaM2: 0.72, count: 36 },
   ]);
   f.wall.patternRegions[1].x = 3000;
-  const outside = new TileCounter().analyze(f.wall, f.patterns);
+  const outside = new TileCounter().analyze(f.wall, f.patterns)!;
   expect(outside.regions[0].areaM2).toBeCloseTo(1.44);
   expect(outside.regions[1]).toMatchObject({ areaM2: 0, count: 0 });
 });
@@ -57,7 +65,7 @@ test('reports polygon area and preserves rows for empty or unselected regions', 
     { pattern: '' },
   );
   const counter = new TileCounter();
-  expect(counter.analyze(f.wall, f.patterns)).toEqual({
+  expect(counter.analyze(f.wall, f.patterns)!).toEqual({
     areaM2: 1,
     regions: [],
     counts: { total: 0, patterns: [] },
@@ -75,7 +83,7 @@ test('reports polygon area and preserves rows for empty or unselected regions', 
       height: 0,
     },
   ];
-  expect(counter.analyze(f.wall, f.patterns).regions).toEqual([
+  expect(counter.analyze(f.wall, f.patterns)!.regions).toEqual([
     { index: 0, pattern: '', areaM2: 0, count: 0 },
   ]);
 });
@@ -89,7 +97,7 @@ test('counts each full or partial tile once, excluding boundary-only contact', (
 });
 
 test('counts concave and diagonal boundaries in either winding direction', () => {
-  const l = [
+  const l: Point[] = [
     [0, 0],
     [300, 0],
     [300, 100],
@@ -126,7 +134,7 @@ test('grout-only intersections do not require a tile', () => {
 test('follows inset geometry and inset-relative offsets, including erased surfaces', () => {
   expect(count(fixture(rectangle(210, 210), { patternInset: 5 })).total).toBe(4);
   expect(count(fixture(rectangle(200, 200), { patternInset: 100 })).total).toBe(0);
-  const l = [
+  const l: Point[] = [
     [0, 0],
     [310, 0],
     [310, 110],
@@ -135,7 +143,7 @@ test('follows inset geometry and inset-relative offsets, including erased surfac
     [0, 310],
   ];
   expect(count(fixture(l, { patternInset: 5 })).total).toBe(5);
-  const collinear = [
+  const collinear: Point[] = [
     [0, 0],
     [100, 0],
     [210, 0],
@@ -151,6 +159,7 @@ test('replaces covered tiles with region patterns and deduplicates matching grid
     { name: 'small', tileWidth: 50, tileHeight: 50, borderSize: 0 },
   ]);
   const region = {
+    fullWall: false,
     x: 100,
     y: 0,
     width: 100,
@@ -179,6 +188,7 @@ test('counts only pattern regions even when the complete wall has a base pattern
   expect(count(f)).toEqual({ total: 0, patterns: [] });
   f.wall.patternRegions = [
     {
+      fullWall: false,
       x: 0,
       y: 0,
       width: 150,
@@ -201,6 +211,7 @@ test('untiled surfaces can still contain tiled regions; elements do not remove t
   expect(count(f).total).toBe(0);
   f.wall.patternRegions = [
     {
+      fullWall: false,
       x: 0,
       y: 0,
       width: 100,
@@ -218,11 +229,11 @@ test('untiled surfaces can still contain tiled regions; elements do not remove t
 test('updates cached counts after pattern and geometry edits and bounds excessive work', () => {
   const f = fixture();
   const counter = new TileCounter();
-  expect(counter.count(f.wall, f.patterns).total).toBe(4);
+  expect(counter.count(f.wall, f.patterns)!.total).toBe(4);
   f.patterns[0].tileWidth = 50;
-  expect(counter.count(f.wall, f.patterns).total).toBe(8);
+  expect(counter.count(f.wall, f.patterns)!.total).toBe(8);
   f.wall.outline.points = rectangle(100, 100);
-  expect(counter.count(f.wall, f.patterns).total).toBe(2);
+  expect(counter.count(f.wall, f.patterns)!.total).toBe(2);
   f.patterns[0].tileWidth = f.patterns[0].tileHeight = 0.001;
-  expect(counter.count(f.wall, f.patterns)).toBeNull();
+  expect(counter.count(f.wall, f.patterns)!).toBeNull();
 });

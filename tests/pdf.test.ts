@@ -5,7 +5,7 @@ import { PlanService } from '../src/model/plan-service';
 
 const image =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4XmP4DwQACfsD/YcUtbcAAAAASUVORK5CYII=';
-function contents(buffer) {
+function contents(buffer: ArrayBuffer) {
   const raw = Buffer.from(buffer).toString('latin1');
   const streams = [...raw.matchAll(/stream\r?\n([\s\S]*?)\r?\nendstream/g)]
     .map((match) => {

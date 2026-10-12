@@ -30,7 +30,7 @@ export default defineConfig(
     languageOptions: { globals: globals.node },
   },
   {
-    files: ['tests/**/*.js', 'scripts/**/*.mjs', '*.config.js', '*.cjs'],
+    files: ['scripts/**/*.mjs', '*.config.js', '*.cjs'],
     extends: [js.configs.recommended],
     languageOptions: { globals: globals.node },
   },

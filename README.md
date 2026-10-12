@@ -52,7 +52,7 @@ Run `npm run format` to format source, tests, configuration, and documentation w
 
 `npm run lint` checks source, configuration, tests, and build scripts with ESLint. `npm run lint:fix` applies available automatic fixes. `npm run check` runs linting after the formatting check.
 
-`eslint.config.js` uses the recommended ESLint and type-aware TypeScript rules for application code and TypeScript configuration, plus the recommended JavaScript rules for tests and scripts. TypeScript test files use the recommended rules without type information because they are outside the application tsconfig. Browser and Node globals are configured for their respective files. Prettier remains responsible for formatting through `eslint-config-prettier`. Generated output and dependency directories are ignored.
+`eslint.config.js` uses the recommended ESLint and type-aware TypeScript rules for application code and TypeScript configuration, plus the recommended JavaScript rules for build scripts. TypeScript test files use the recommended rules without type information because they are outside the application tsconfig. Browser and Node globals are configured for their respective files. Prettier remains responsible for formatting through `eslint-config-prettier`. Generated output and dependency directories are ignored.
 
 ## Source layout
 
@@ -77,20 +77,20 @@ Run `npm run format` to format source, tests, configuration, and documentation w
 | `vitest.config.ts`                                             | Vitest regression and built-app projects                                                                 |
 | `vite.config.ts`                                               | Preact integration, asset builds, development server, and local build preview                            |
 | `scripts/build-portable.mjs`                                   | Bundles source into a self-contained HTML file for direct browser opening.                               |
-| `tests/pattern.test.js`                                        | Pattern rotation defaults, edits, and YAML persistence                                                   |
-| `tests/model.test.js`                                          | Model validation, persistence, placement math, face visibility, element layering, and light behavior     |
-| `tests/ui.test.js`                                             | Bundled startup, control interaction, reactive scene updates, camera fitting, and save round trips       |
-| `tests/build.test.js`                                          | Built application startup, documentation, and asset serving through Vite preview                         |
-| `tests/portable.test.js`                                       | Isolated portable-file startup, documentation, source editing, and downloads without external resources. |
-| `tests/markdown.test.js`                                       | Markdown formatting and HTML sanitization                                                                |
+| `tests/pattern.test.ts`                                        | Pattern rotation defaults, edits, and YAML persistence                                                   |
+| `tests/model.test.ts`                                          | Model validation, persistence, placement math, face visibility, element layering, and light behavior     |
+| `tests/ui.test.ts`                                             | Bundled startup, control interaction, reactive scene updates, camera fitting, and save round trips       |
+| `tests/build.test.ts`                                          | Built application startup, documentation, and asset serving through Vite preview                         |
+| `tests/portable.test.ts`                                       | Isolated portable-file startup, documentation, source editing, and downloads without external resources. |
+| `tests/markdown.test.ts`                                       | Markdown formatting and HTML sanitization                                                                |
 
-Edit these source files directly. The earlier Python migration/patch scripts are no longer part of the build. Application source is TypeScript with strict checking. The model, codecs, geometry, and 3D/pattern rendering are separate modules; each class has its own TypeScript file, while the editor entry point constructs the classes and connects reactive state. The Documentation button lists the user, developer, and architecture guides; selecting a guide renders its Markdown imported through Vite using Marked and DOMPurify. Mermaid diagrams render as SVG through `src/ui/mermaid-renderer.ts`, which loads Mermaid only when needed and preserves the source if rendering fails. Diagrams work offline in the portable HTML. Use All documentation to return to the list. Edit the files under `docs/` to update their content. Vite handles development and production builds. Regression tests use Vitest and remain JavaScript.
+Edit these source files directly. The earlier Python migration/patch scripts are no longer part of the build. Application source is TypeScript with strict checking. The model, codecs, geometry, and 3D/pattern rendering are separate modules; each class has its own TypeScript file, while the editor entry point constructs the classes and connects reactive state. The Documentation button lists the user, developer, and architecture guides; selecting a guide renders its Markdown imported through Vite using Marked and DOMPurify. Mermaid diagrams render as SVG through `src/ui/mermaid-renderer.ts`, which loads Mermaid only when needed and preserves the source if rendering fails. Diagrams work offline in the portable HTML. Use All documentation to return to the list. Edit the files under `docs/` to update their content. Vite handles development and production builds. Regression tests use Vitest and TypeScript, with strict test checking through `tsconfig.test.json`.
 
 ## Test commands
 
 - `npm test` runs the regression project once, without requiring a build.
 - `npm run test:watch` reruns regression tests as files change.
-- `npm test -- tests/pattern.test.js` runs one regression file.
+- `npm test -- tests/pattern.test.ts` runs one regression file.
 - `npm test -- -t "validates perimeter inset"` filters by test name.
 - `npm run test:build` runs the website and portable smoke tests against an existing `dist/` build.
 - `npm run check` verifies formatting, linting, regression tests, typechecking, both builds, and both smoke tests.
@@ -102,6 +102,8 @@ Edit these source files directly. The earlier Python migration/patch scripts are
 See [docs/architecture.md](docs/architecture.md) for module responsibilities, state ownership, and Mermaid diagrams of data flow, interactions, document loading, and rendering.
 
 `PlanService` owns typed plain plan data and persistent operations. An injected publication callback keeps it independent of editor globals. Preact renders the sidebar, Signals publish state snapshots, and semantic change events support the history descriptions and reset behavior. Canvas handles the 2D view. `ThreePreview` owns the Three.js scene and cached geometry; the floor is on XY and Z is height. Coordinates in plan files use millimeters; Three.js coordinates use meters.
+
+`npm run typecheck` checks both application and test code with strict TypeScript settings. Vitest transpiles TypeScript during execution; the separate `tsconfig.test.json` ensures type errors in fixtures, mocks, and assertions are checked too.
 
 Model tests import the actual TypeScript modules directly through Vitest. UI tests instrument the TypeScript entry point, bundle it with those modules, and run it in jsdom. They use real Three.js geometry, materials, and orbit controls with a mocked WebGL renderer. The build test serves production assets with Vite preview and checks startup and example loading in jsdom. Run it separately with `npm run test:build` after building. The tests verify behavior and geometry but do not validate GPU output; use a real browser to visually review the preview, texture lighting, and pointer interactions.
 
