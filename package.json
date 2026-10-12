@@ -6,7 +6,7 @@
   "description": "2D tiling plan editor with a Three.js room preview",
   "type": "module",
   "engines": {
-    "node": "^20.19.0 || ^22.13.0 || >=24.0.0"
+    "node": "^26.11.1"
   },
   "scripts": {
     "dev": "vite",
@@ -36,7 +36,7 @@
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@preact/preset-vite": "2.10.6",
-    "@types/node": "24.19.2",
+    "@types/node": "26.6.5",
     "@types/three": "0.180.0",
     "esbuild": "0.28.2",
     "eslint": "10.12.0",

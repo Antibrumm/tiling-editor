@@ -206,7 +206,7 @@ export class CanvasRenderer {
       this.dependencies.ctx.textBaseline = 'middle';
       this.dependencies.ctx.fillStyle = '#6b7280';
       this.dependencies.ctx.fillText(
-        'Upload your plan or load the template',
+        'Upload your plan or load the example',
         metrics.left + metrics.width / 2,
         metrics.top + metrics.height / 2,
       );

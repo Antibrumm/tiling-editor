@@ -1,5 +1,3 @@
-import { h, render } from 'preact';
-import { signal } from '@preact/signals';
 import type { Plan } from '../model/types';
 import type { PatternPainter } from '../rendering/pattern-painter';
 import { ThreePreview } from '../rendering/three-preview';
@@ -7,7 +5,6 @@ import { CanvasRenderer } from '../rendering/canvas-renderer';
 import { GeometryTools } from '../model/geometry';
 import { CanvasViewport } from './canvas-viewport';
 import { EditorState } from './editor-state';
-import { TileReport } from './components/tile-report';
 import { get2DContext } from '../dom';
 import type { ViewState } from './types';
 
@@ -24,10 +21,9 @@ interface PrintDependencies {
   message(text: string): void;
 }
 
-/** Prepares an immutable report and complete preview images before opening browser printing. */
+/** Prepares an immutable report and complete preview images for PDF downloads and printing. */
 export class PrintController {
   private geometry = new GeometryTools();
-  private document: HTMLElement | null = null;
   constructor(private dependencies: PrintDependencies) {
     dependencies.button.addEventListener('click', () => {
       void this.print();
@@ -35,57 +31,37 @@ export class PrintController {
     dependencies.pdfButton.addEventListener('click', () => {
       void this.downloadPdf();
     });
-    window.addEventListener('afterprint', () => this.clear());
   }
 
   public async print() {
     if (this.dependencies.button.disabled) return;
+    // Reserve the PDF tab during the click so async rendering does not trigger popup blocking.
+    const viewer = window.open('about:blank', '_blank');
+    if (!viewer) {
+      this.dependencies.message('Could not open PDF print preview. Allow popups and try again.');
+      return;
+    }
+    viewer.opener = null;
     this.setBusy(true);
-    this.dependencies.message('Preparing print document…');
+    this.dependencies.message('Preparing PDF for printing...');
+    let url: string | null = null;
     try {
-      const { plan, drawing, preview } = await this.prepare();
-      this.clear();
-      const root = document.createElement('main');
-      root.id = 'print-document';
-      document.body.append(root);
-      document.body.classList.add('printing-result');
-      this.document = root;
-      render(
-        h(
-          'div',
-          null,
-          h(
-            'section',
-            { class: 'print-report' },
-            h('h1', null, plan.name),
-            h('h2', null, 'Tile report'),
-            h(TileReport, { effectivePlan: signal(plan), showTitle: false }),
-          ),
-          h(
-            'section',
-            { class: 'print-preview' },
-            h('h2', null, '2D view'),
-            h('img', { src: drawing, alt: 'Complete 2D tiling plan' }),
-          ),
-          h(
-            'section',
-            { class: 'print-preview' },
-            h('h2', null, '3D preview'),
-            preview
-              ? h('img', { src: preview, alt: '3D room preview' })
-              : h('p', null, '3D preview is unavailable in this browser.'),
-          ),
-        ),
-        root,
-      );
-      await Promise.all([...root.querySelectorAll('img')].map((image) => image.decode?.()));
-      await document.fonts?.ready;
-      window.print();
-      this.dependencies.message('Print document ready.');
+      const blob = await this.preparePdf();
+      if (viewer.closed) return;
+      url = URL.createObjectURL(blob);
+      viewer.location.replace(url);
+      const pdfUrl = url;
+      const timer = window.setInterval(() => {
+        if (!viewer.closed) return;
+        URL.revokeObjectURL(pdfUrl);
+        window.clearInterval(timer);
+      }, 1000);
+      this.dependencies.message('PDF ready. Use the PDF viewer Print button to print it.');
     } catch (error) {
-      this.clear();
+      if (url) URL.revokeObjectURL(url);
+      viewer.close();
       this.dependencies.message(
-        `Could not prepare print document: ${error instanceof Error ? error.message : String(error)}`,
+        `Could not prepare PDF for printing: ${error instanceof Error ? error.message : String(error)}`,
       );
     } finally {
       this.setBusy(false);
@@ -97,10 +73,7 @@ export class PrintController {
     this.setBusy(true);
     this.dependencies.message('Preparing PDF…');
     try {
-      const { plan, drawing, preview } = await this.prepare();
-      const { PdfReport } = await import('../codecs/pdf-report');
-      const buffer = new PdfReport().generate(plan, drawing, preview);
-      const url = URL.createObjectURL(new Blob([buffer], { type: 'application/pdf' }));
+      const url = URL.createObjectURL(await this.preparePdf());
       const link = document.createElement('a');
       link.href = url;
       link.download = `${this.dependencies.downloadBaseName()}.pdf`;
@@ -114,6 +87,13 @@ export class PrintController {
     } finally {
       this.setBusy(false);
     }
+  }
+
+  private async preparePdf(): Promise<Blob> {
+    const { plan, drawing, preview } = await this.prepare();
+    const { PdfReport } = await import('../codecs/pdf-report');
+    const buffer = new PdfReport().generate(plan, drawing, preview);
+    return new Blob([buffer], { type: 'application/pdf' });
   }
 
   private setBusy(value: boolean) {
@@ -171,13 +151,5 @@ export class PrintController {
     } finally {
       stage.remove();
     }
-  }
-
-  private clear() {
-    if (!this.document) return;
-    render(null, this.document);
-    this.document.remove();
-    document.body.classList.remove('printing-result');
-    this.document = null;
   }
 }

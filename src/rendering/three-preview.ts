@@ -487,7 +487,7 @@ export class ThreePreview {
         (plan.walls.some((w) => !w.placement3d)
           ? ' · Suggested positions: edit “3D placement” to assemble your room.'
           : '')
-      : 'Load a template or add a surface to see it in 3D.';
+      : 'Load an example or add a surface to see it in 3D.';
     this.render();
   }
   fit(preset: 'perspective' | 'top' | 'front' | null = null) {

@@ -330,9 +330,9 @@ test('plan validation, placement, light lifecycle, geometry, and mesh reuse', ()
   service.removeWall('back');
   preview.update(service.snapshot());
   assert.equal(preview.entries.size, 1, 'Removed surfaces are disposed');
-  const templateSource = fs.readFileSync('src/assets/base-model.yaml', 'utf8');
-  const template = context.yamlCodec.decode(templateSource);
-  preview.update(template);
+  const exampleSource = fs.readFileSync('src/assets/base-model.yaml', 'utf8');
+  const example = context.yamlCodec.decode(exampleSource);
+  preview.update(example);
   preview.scene.updateMatrixWorld(true);
   const inward = {
     back: [0, -1, 0],
@@ -368,9 +368,9 @@ test('plan validation, placement, light lifecycle, geometry, and mesh reuse', ()
       'Exterior uses the white face',
     );
   }
-  const floorPoints = template.walls.find((w) => w.name === 'floor').outline.points;
+  const floorPoints = example.walls.find((w) => w.name === 'floor').outline.points;
   for (const name of Object.keys(inward)) {
-    const wall = template.walls.find((w) => w.name === name),
+    const wall = example.walls.find((w) => w.name === name),
       entry = preview.entries.get(name),
       width = Math.max(...wall.outline.points.map((p) => p[0]));
     for (const x of [0, width]) {
@@ -384,8 +384,8 @@ test('plan validation, placement, light lifecycle, geometry, and mesh reuse', ()
     }
   }
   assert(
-    template.walls.every((w) => w.objects.every((o) => o.depth === 10)),
-    'Template objects initially have 10 mm depth',
+    example.walls.every((w) => w.objects.every((o) => o.depth === 10)),
+    'Example objects initially have 10 mm depth',
   );
   const layers = new context.PlanService({
     walls: [

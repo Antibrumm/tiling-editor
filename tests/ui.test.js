@@ -65,6 +65,15 @@ const errors = [],
 const paintedTexts = [];
 let printCalls = 0;
 const pdfDownloads = [];
+const printUrls = [];
+const pdfViewer = {
+  closed: false,
+  opener: null,
+  location: { replace: (url) => printUrls.push(url) },
+  close() {
+    this.closed = true;
+  },
+};
 vc.on('jsdomError', (e) => errors.push(e.message));
 const dom = new JSDOM(html, {
   runScripts: 'dangerously',
@@ -72,6 +81,7 @@ const dom = new JSDOM(html, {
   url: 'https://editor.test/',
   virtualConsole: vc,
   beforeParse(window) {
+    window.open = () => pdfViewer;
     window.TextEncoder = TextEncoder;
     window.TextDecoder = TextDecoder;
     window.URL.createObjectURL = (blob) => {
@@ -170,7 +180,7 @@ test('editor startup, controls, selection, and reactive 3D preview', async () =>
   titleInput.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
   assert.equal(document.getElementById('plan-title').textContent, 'TypeScript plan');
   assert.equal(document.getElementById('plan-title-input'), null);
-  document.getElementById('load-template').click();
+  document.getElementById('load-example').click();
   await wait();
   assert.equal(document.querySelectorAll('.wall-section').length, 7);
   assert(
@@ -551,7 +561,7 @@ test('editor startup, controls, selection, and reactive 3D preview', async () =>
     card.querySelector('summary').textContent.includes('floor'),
   );
   const fullWallToggle = floorCard.querySelector('.pattern-regions input[type="checkbox"]');
-  assert(fullWallToggle.checked, 'Template tiling belongs to a full-wall region');
+  assert(fullWallToggle.checked, 'Example tiling belongs to a full-wall region');
   const fullWallButton = () =>
     [...floorCard.querySelectorAll('button')].find(
       (button) => button.textContent === 'Add full-wall pattern',
@@ -591,14 +601,15 @@ test('editor startup, controls, selection, and reactive 3D preview', async () =>
   const cameraBeforePrint = test.threePreview.camera.position.clone();
   document.getElementById('print-result').click();
   await wait();
-  assert.equal(printCalls, 1, 'Prepared document opens the print dialog');
-  const printDocument = document.getElementById('print-document');
-  assert.equal(printDocument.querySelector('h1').textContent, beforePrint.name);
-  assert.equal(printDocument.querySelectorAll('.report-wall').length, beforePrint.walls.length);
+  assert.equal(printCalls, 0, 'Printing uses the PDF viewer instead of the HTML print dialog');
+  assert.equal(printUrls.length, 1, 'Print opens the generated PDF URL');
+  assert.equal(pdfDownloads.length, 1);
+  assert.equal(pdfDownloads[0].type, 'application/pdf');
+  assert(pdfDownloads[0].size > 1000);
   assert.equal(
-    printDocument.querySelectorAll('.print-preview img').length,
-    2,
-    'Print contains 2D and 3D snapshots',
+    document.getElementById('print-document'),
+    null,
+    'No separate HTML print document is generated',
   );
   assert.deepStrictEqual(test.planService.snapshot(), beforePrint, 'Printing preserves plan data');
   assert(
@@ -606,23 +617,24 @@ test('editor startup, controls, selection, and reactive 3D preview', async () =>
     'Printing preserves the camera angle',
   );
   assert.equal(source.value, 'draft yaml', 'Printing preserves the YAML draft');
-  window.dispatchEvent(new window.Event('afterprint'));
-  assert.equal(
-    document.getElementById('print-document'),
-    null,
-    'Print staging is cleared after printing',
-  );
+  pdfViewer.close();
   document.getElementById('download-pdf').click();
   await wait();
-  assert.equal(pdfDownloads.length, 1, document.getElementById('status').textContent);
+  assert.equal(pdfDownloads.length, 2, document.getElementById('status').textContent);
   assert.equal(pdfDownloads[0].type, 'application/pdf');
   assert(pdfDownloads[0].size > 1000);
-  assert.equal(printCalls, 1, 'PDF download skips the print dialog');
+  assert.equal(printCalls, 0, 'PDF download skips the print dialog');
   assert.deepStrictEqual(
     test.planService.snapshot(),
     beforePrint,
     'PDF export preserves plan data',
   );
   assert.equal(source.value, 'draft yaml', 'PDF export preserves the YAML draft');
+  window.open = () => null;
+  document.getElementById('print-result').click();
+  await wait();
+  assert.equal(pdfDownloads.length, 2, 'Blocked popup does not start PDF generation');
+  assert(document.getElementById('status').textContent.includes('Allow popups'));
+  assert(!document.getElementById('print-result').disabled);
   assert.deepStrictEqual(errors, []);
 });

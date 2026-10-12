@@ -1,7 +1,7 @@
 import type { PatternRegion } from './types';
 export type PlanChange =
   | { type: 'upload'; kind: 'YAML' | 'SVG' }
-  | { type: 'change' | 'replace' | 'template' | 'source-apply' | 'reset' }
+  | { type: 'change' | 'replace' | 'example' | 'source-apply' | 'reset' }
   | { type: 'light-change'; lightId: string; key: string; value: unknown }
   | { type: 'light-add'; lightId: string }
   | { type: 'light-remove'; lightId: string }

@@ -3,7 +3,7 @@ interface EditorElements {
   'edit-plan-title': HTMLButtonElement;
   'upload-plan': HTMLElement;
   'upload-plan-input': HTMLInputElement;
-  'load-template': HTMLButtonElement;
+  'load-example': HTMLButtonElement;
   'open-help': HTMLButtonElement;
   'documentation-back': HTMLButtonElement;
   'view-title': HTMLElement;

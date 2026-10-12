@@ -69,7 +69,7 @@ test('portable file startup, YAML edits, downloads, and offline isolation', asyn
     assert.equal(document.querySelectorAll('link[rel="stylesheet"]').length, 0);
     assert(document.querySelector('style').textContent.length > 1000);
     assert.equal(document.querySelectorAll('.wall-section').length, 0);
-    document.getElementById('load-template').click();
+    document.getElementById('load-example').click();
     await new Promise((resolve) => setTimeout(resolve, 160));
     assert.equal(document.querySelectorAll('.wall-section').length, 7);
     for (const id of ['user', 'developer']) {

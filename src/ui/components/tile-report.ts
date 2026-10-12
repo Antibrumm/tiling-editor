@@ -69,7 +69,7 @@ export function TileReport({
       'Wall areas cover the complete outline. Tile region areas cover visible tiling, including grout, after inset and overlapping regions. Each partial tile counts as one; offcuts are not reused.',
     ),
     !plan.walls.length &&
-      h('p', { class: 'report-empty' }, 'Load a template or upload a plan to see its tile report.'),
+      h('p', { class: 'report-empty' }, 'Load an example or upload a plan to see its tile report.'),
     walls.map(({ wall, result, areaM2 }) => {
       return h(
         'section',

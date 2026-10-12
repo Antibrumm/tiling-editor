@@ -5,7 +5,7 @@ import path from 'node:path';
 import esbuild from 'esbuild';
 import { JSDOM, VirtualConsole } from 'jsdom';
 
-test('production assets, documentation, and template startup', async () => {
+test('production assets, documentation, and example startup', async () => {
   const { preview } = await import('vite');
   const server = await preview({ preview: { host: '127.0.0.1', port: 0 } });
   let dom;
@@ -90,7 +90,7 @@ test('production assets, documentation, and template startup', async () => {
       );
       dom.window.document.getElementById('help-dialog').close();
     }
-    dom.window.document.getElementById('load-template').click();
+    dom.window.document.getElementById('load-example').click();
     await new Promise((resolve) => setTimeout(resolve, 160));
     assert.equal(dom.window.document.querySelectorAll('.wall-section').length, 7);
     assert(dom.window.document.getElementById('source').value.includes('Tiling Bathroom'));

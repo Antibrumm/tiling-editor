@@ -2,7 +2,7 @@
 
 This document describes the current TypeScript application: how it is assembled, who owns its state, and how user actions reach the model and previews. See [developer.md](developer.md) for the class reference and [user.md](user.md) for usage instructions.
 
-The application runs in the browser with Preact, Signals, Canvas 2D, and Three.js. Vite provides development and the website build; esbuild produces a portable HTML edition. There is no application server or database; documents are loaded from files or the bundled template and exported through browser downloads.
+The application runs in the browser with Preact, Signals, Canvas 2D, and Three.js. Vite provides development and the website build; esbuild produces a portable HTML edition. There is no application server or database; documents are loaded from files or the bundled example and exported through browser downloads.
 
 The diagrams use Mermaid. Open Architecture documentation from the application's Documentation list to view the rendered diagrams, or use a Markdown viewer that supports Mermaid. The documentation viewer renders Markdown with Marked and DOMPurify, then lazily loads Mermaid to replace diagram blocks with SVG. Mermaid is bundled into the portable HTML and works offline. If a diagram cannot be rendered, its source remains visible.
 
@@ -173,13 +173,13 @@ flowchart TB
 
 `YamlSourceEditor.apply()` decodes the draft before replacing the document. A successful replacement batches persistent replacement with clearing transient interaction and YAML editing state, clears selection, refreshes the title and view box, and requests 3D fitting. A decode failure is displayed in the source status area without replacing the plan.
 
-Explicit template loading, uploading, and reset are document replacement actions, and clear the draft state. Draft protection applies to ordinary synchronization, not to replacing the document at the user's request.
+Explicit example loading, uploading, and reset are document replacement actions, and clear the draft state. Draft protection applies to ordinary synchronization, not to replacing the document at the user's request.
 
 ### Import and reset paths
 
 ```mermaid
 flowchart LR
-    template["Bundled template text"] --> yaml["YamlCodec"]
+    example["Bundled example text"] --> yaml["YamlCodec"]
     file["Uploaded file"] --> reader["EditorApp: FileReader and format selection"]
     reader --> yaml
     reader --> svg["SvgCodec"]
@@ -190,20 +190,20 @@ flowchart LR
     reset["Existing resetSnapshot"] --> replace
     replace --> service["PlanService.replaceData: normalize and publish"]
     replace --> choice{"Establish reset point?"}
-    choice -->|Template or upload| newBaseline["Capture document, wall, and object baselines"]
+    choice -->|Example or upload| newBaseline["Capture document, wall, and object baselines"]
     choice -->|Apply YAML or reset| oldBaseline["Preserve existing baselines"]
 ```
 
 Codecs normalize decoded input, and `PlanService.replaceData()` normalizes the incoming document again at the model boundary. `PlanNormalizer` supplies defaults, derives canvas bounds, migrates legacy Y-up placements, and accepts the earlier single-light representation. Normalization is not comprehensive domain validation; codecs and model operations also perform their own checks.
 
-| Action                  | Current document                                     | Reset baselines                                        |
-| ----------------------- | ---------------------------------------------------- | ------------------------------------------------------ |
-| Startup                 | Empty walls and patterns; template remains unloaded. | Empty document snapshot and initially empty item maps. |
-| Load template or upload | Replace document and fit the view.                   | Capture the loaded document and its items.             |
-| Apply YAML              | Replace current document and fit the view.           | Preserve existing baselines.                           |
-| Reset document          | Replace current document with `resetSnapshot`.       | Preserve existing baselines.                           |
-| Add wall or object      | Add through `PlanService`.                           | Record that new item's initial state.                  |
-| Reset wall or object    | Restore the saved item through `PlanService`.        | Keep its reset target.                                 |
+| Action                 | Current document                                    | Reset baselines                                        |
+| ---------------------- | --------------------------------------------------- | ------------------------------------------------------ |
+| Startup                | Empty walls and patterns; example remains unloaded. | Empty document snapshot and initially empty item maps. |
+| Load example or upload | Replace document and fit the view.                  | Capture the loaded document and its items.             |
+| Apply YAML             | Replace current document and fit the view.          | Preserve existing baselines.                           |
+| Reset document         | Replace current document with `resetSnapshot`.      | Preserve existing baselines.                           |
+| Add wall or object     | Add through `PlanService`.                          | Record that new item's initial state.                  |
+| Reset wall or object   | Restore the saved item through `PlanService`.       | Keep its reset target.                                 |
 
 The entry point maintains item baselines on semantic events. Wall renaming moves baseline map keys, removals discard item baselines, and object reordering adjusts both baseline ordering and the selected object index.
 
@@ -265,7 +265,7 @@ Camera fitting uses room geometry, excluding light helpers. Fit room preserves t
 
 Vite reads `index.html` and builds the TypeScript entry point and its imports. YAML and documentation Markdown use `?raw` imports, so their text is bundled without runtime file requests. Three.js and OrbitControls are loaded through dynamic imports. The output is a static app with separate JavaScript and CSS assets under `dist/`, served locally with `npm run preview` or another HTTP server.
 
-For handing over the app, [scripts/build-portable.mjs](../scripts/build-portable.mjs) bundles the same source with esbuild into `dist/tiling-editor.html`. CSS, raw assets, and JavaScript are inlined. Dynamic imports are bundled into the file, while WebGL initialization still occurs when the 3D preview is activated. The inline script uses the classic IIFE format, allowing direct `file://` opening without the CORS restrictions associated with local JavaScript modules. Closing script and style tags in embedded content are escaped before insertion into the HTML shell. This build uses no external resources for the bundled application and template.
+For handing over the app, [scripts/build-portable.mjs](../scripts/build-portable.mjs) bundles the same source with esbuild into `dist/tiling-editor.html`. CSS, raw assets, and JavaScript are inlined. Dynamic imports are bundled into the file, while WebGL initialization still occurs when the 3D preview is activated. The inline script uses the classic IIFE format, allowing direct `file://` opening without the CORS restrictions associated with local JavaScript modules. Closing script and style tags in embedded content are escaped before insertion into the HTML shell. This build uses no external resources for the bundled application and example.
 
 `npm run build` creates both editions. `npm run build:portable` creates only the portable file. Both use the same source modules; the portable build adds no second application implementation. Changes to code, styles, or bundled documentation require rebuilding before handing over the file.
 
@@ -277,14 +277,14 @@ Strict TypeScript checking runs before the production build. Prettier defines th
 npm run check
 ```
 
-| Check                     | Coverage                                                                                                                                             |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Formatting and TypeScript | Consistent formatting and compile-time model, component, and dependency contracts.                                                                   |
-| Pattern and model tests   | Real TypeScript modules, model operations, serialization, placement, geometry, layering, and resource reuse.                                         |
-| UI tests                  | Bundled source in jsdom: startup, sidebar actions, reordering, selection, reactive updates, draft protection, and dialogs.                           |
-| Markdown tests            | Markdown output and HTML sanitization.                                                                                                               |
-| Built-app smoke test      | Emitted production code, asset serving through Vite preview, startup, documentation, and template loading.                                           |
-| Portable smoke test       | HTML copied to an isolated folder, executed through a file URL with no external resources; startup, template, help, YAML application, and downloads. |
+| Check                     | Coverage                                                                                                                                            |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Formatting and TypeScript | Consistent formatting and compile-time model, component, and dependency contracts.                                                                  |
+| Pattern and model tests   | Real TypeScript modules, model operations, serialization, placement, geometry, layering, and resource reuse.                                        |
+| UI tests                  | Bundled source in jsdom: startup, sidebar actions, reordering, selection, reactive updates, draft protection, and dialogs.                          |
+| Markdown tests            | Markdown output and HTML sanitization.                                                                                                              |
+| Built-app smoke test      | Emitted production code, asset serving through Vite preview, startup, documentation, and example loading.                                           |
+| Portable smoke test       | HTML copied to an isolated folder, executed through a file URL with no external resources; startup, example, help, YAML application, and downloads. |
 
 The automated UI tests use real Three.js geometry with mocked WebGL rendering. The built-app test also mocks Canvas and rebundles emitted JavaScript for jsdom. Real-browser checks are needed to verify native module loading, GPU output, and pointer behavior.
 

@@ -91,7 +91,7 @@ Lights persist a `type` (`directional` or `conic`) and a full cone `angle` in de
 
 ## Reset behavior
 
-Loading a template or uploaded document establishes the reset baseline. Wall and object snapshots preserve their loaded state. Applying YAML changes the current document without redefining that baseline. Newly added items establish their own initial reset state.
+Loading a example or uploaded document establishes the reset baseline. Wall and object snapshots preserve their loaded state. Applying YAML changes the current document without redefining that baseline. Newly added items establish their own initial reset state.
 
 ## Document lifecycle
 
@@ -111,6 +111,6 @@ Model tests import TypeScript directly through Vitest. UI tests retain syntax-ba
 
 `eslint.config.js` configures the recommended ESLint rules and the [recommended type-aware typescript-eslint rules](https://typescript-eslint.io/getting-started/typed-linting/) for application TypeScript and its configuration. Project Service uses `tsconfig.json` for type information. JavaScript tests and build scripts use the recommended JavaScript rules with Node globals; TypeScript tests use the recommended TypeScript rules without type information. `eslint-config-prettier` prevents formatting conflicts.
 
-Use `npm run lint` to check the repository and `npm run lint:fix` to apply automatic fixes. The combined `npm run check` runs linting before regression tests and builds. ESLint 10 requires Node 20.19+ on the 20.x line, 22.13+ on the 22.x line, or 24+. Dependencies are pinned in the package manifest and lockfile.
+Use `npm run lint` to check the repository and `npm run lint:fix` to apply automatic fixes. The combined `npm run check` runs linting before regression tests and builds. The project targets Node.js 26.11.1 or newer on the 26.x release line. Dependencies are pinned in the package manifest and lockfile.
 
 `TileCounter.analyze()` provides wall area, visible area and tile count per region, and counts grouped by pattern. Areas convert millimeter geometry to square meters. The report and canvas use this shared analysis; calculations remain derived and are not serialized. `TileReport` reads the effective plan only while the report view is visible.

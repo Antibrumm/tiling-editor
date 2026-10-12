@@ -1,6 +1,6 @@
 ## Getting started
 
-The editor opens without a plan. Choose **Load template** to load the integrated “Tiling Bathroom” example, or use **Upload plan** to open a YAML or SVG plan. The canvas and controls are generated from the current plan data.
+The editor opens without a plan. Choose **Load example** to load the integrated “Tiling Bathroom” example, or use **Upload plan** to open a YAML or SVG plan. The canvas and controls are generated from the current plan data.
 
 ## Preview navigation
 
@@ -14,11 +14,11 @@ The report updates when the plan changes. Walls without tile regions are listed 
 
 ## Downloading a PDF
 
-Choose **Download PDF** to save the complete result directly, without a print dialog or server. The PDF contains the plan title, room totals by tile type, wall and tile-region tables with selectable text, and the fitted 2D and current 3D previews on separate A4 pages. Long tables continue across pages with repeated headers. The download works offline in the portable HTML and preserves the plan and unapplied YAML draft.
+Choose **Download Report** to save the complete result directly, without a print dialog or server. The PDF contains the plan title, room totals by tile type, wall and tile-region tables with selectable text, and the fitted 2D and current 3D previews on separate A4 pages. Long tables continue across pages with repeated headers. The download works offline in the portable HTML and preserves the plan and unapplied YAML draft.
 
 ## Printing the result
 
-Choose **Print result** to open the browser print dialog, where you can print on paper or save as PDF. The document contains the plan title, complete room and wall report, a fitted 2D drawing, and the 3D preview on separate pages. The 2D drawing follows the Labels, Dimensions, and Tile counts display options. The 3D image uses the current camera angle, or the default fitted view if the preview has not been opened. Printing works from the report or YAML view and preserves the plan, camera angle, and unapplied YAML draft. If WebGL is unavailable, the document explains why the 3D image could not be included.
+Choose **Print Report** to open the same generated PDF as **Download Report** in a new tab. Use the PDF viewer's Print button to print on paper or save a copy. If the tab is blocked, allow popups for the editor and try again. The document contains the plan title, complete room and wall report, a fitted 2D drawing, and the 3D preview on separate pages. The 2D drawing follows the Labels, Dimensions, and Tile counts display options. The 3D image uses the current camera angle, or the default fitted view if the preview has not been opened. Printing works from the report or YAML view and preserves the plan, camera angle, and unapplied YAML draft. If WebGL is unavailable, the document explains why the 3D image could not be included.
 
 ## Selecting and moving walls and elements
 

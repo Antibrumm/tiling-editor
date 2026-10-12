@@ -211,7 +211,7 @@ function init() {
   const actionConsoleLog = getElement('action-console-log');
   const actionConsole = new ActionConsole(actionConsoleLog);
   getElement('clear-action-log').addEventListener('click', () => actionConsole.clear());
-  actionConsole.log('Editor ready — no template loaded.');
+  actionConsole.log('Editor ready — no example loaded.');
   const controlPanel = new ControlPanel({
     sidebarSections: new SidebarSections(),
     reportVisibleSignal,
@@ -495,26 +495,26 @@ function init() {
   });
   const uploadPlan = getElement('upload-plan');
   const uploadPlanInput = getElement('upload-plan-input');
-  const loadTemplateButton = getElement('load-template');
-  loadTemplateButton.addEventListener('click', () => {
-    actionConsole.log('Loading template…');
+  const loadExampleButton = getElement('load-example');
+  loadExampleButton.addEventListener('click', () => {
+    actionConsole.log('Loading example…');
     try {
       const plan = yamlCodec.decode(baseModelYaml);
       app.replaceDocument(plan, {
-        change: { type: 'template' },
+        change: { type: 'example' },
         establishResetPoint: true,
         fitView: true,
       });
-      sourceStatus.textContent = 'Template loaded.';
+      sourceStatus.textContent = 'Example loaded.';
       sourceStatus.classList.remove('error');
-      uiFeedback.message('Template loaded.');
-      actionConsole.log('Template loaded.');
+      uiFeedback.message('Example loaded.');
+      actionConsole.log('Example loaded.');
     } catch (error) {
       uiFeedback.message(
-        'Could not load template: ' + (error instanceof Error ? error.message : String(error)),
+        'Could not load example: ' + (error instanceof Error ? error.message : String(error)),
       );
       actionConsole.log(
-        'Template load failed: ' + (error instanceof Error ? error.message : String(error)),
+        'Example load failed: ' + (error instanceof Error ? error.message : String(error)),
       );
     }
   });

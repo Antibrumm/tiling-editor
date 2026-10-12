@@ -4,7 +4,7 @@ A Preact and Signals application for editing tiling plans in 2D and previewing t
 
 ## Start
 
-Requires Node.js 20.19+ on the 20.x release line, or Node.js 22.13+ and npm.
+Requires Node.js 26.11.1 or newer on the 26.x release line and npm.
 
 ```sh
 npm ci
@@ -21,7 +21,7 @@ To hand over the application as one file:
 npm run build:portable
 ```
 
-Give the recipient **`dist/tiling-editor.html`**. They can double-click it in Explorer to open the editor in their browser, without Node.js, a server, or an internet connection. The file includes styles, application code, Three.js, the template, and help documentation. They can load the template or upload a plan; include an exported YAML plan alongside the HTML if you want to share a particular document. The 3D preview requires WebGL 2.
+Give the recipient **`dist/tiling-editor.html`**. They can double-click it in Explorer to open the editor in their browser, without Node.js, a server, or an internet connection. The file includes styles, application code, Three.js, the example, and help documentation. They can load the example or upload a plan; include an exported YAML plan alongside the HTML if you want to share a particular document. The 3D preview requires WebGL 2.
 
 `npm run build` produces both this portable file and the regular website build. The regular `dist/index.html` uses JavaScript modules and needs an HTTP server; use `tiling-editor.html` for opening directly from Explorer.
 
@@ -103,7 +103,7 @@ See [docs/architecture.md](docs/architecture.md) for module responsibilities, st
 
 `PlanService` owns typed plain plan data and persistent operations. An injected publication callback keeps it independent of editor globals. Preact renders the sidebar, Signals publish state snapshots, and semantic change events support the history descriptions and reset behavior. Canvas handles the 2D view. `ThreePreview` owns the Three.js scene and cached geometry; the floor is on XY and Z is height. Coordinates in plan files use millimeters; Three.js coordinates use meters.
 
-Model tests import the actual TypeScript modules directly through Vitest. UI tests instrument the TypeScript entry point, bundle it with those modules, and run it in jsdom. They use real Three.js geometry, materials, and orbit controls with a mocked WebGL renderer. The build test serves production assets with Vite preview and checks startup and template loading in jsdom. Run it separately with `npm run test:build` after building. The tests verify behavior and geometry but do not validate GPU output; use a real browser to visually review the preview, texture lighting, and pointer interactions.
+Model tests import the actual TypeScript modules directly through Vitest. UI tests instrument the TypeScript entry point, bundle it with those modules, and run it in jsdom. They use real Three.js geometry, materials, and orbit controls with a mocked WebGL renderer. The build test serves production assets with Vite preview and checks startup and example loading in jsdom. Run it separately with `npm run test:build` after building. The tests verify behavior and geometry but do not validate GPU output; use a real browser to visually review the preview, texture lighting, and pointer interactions.
 
 ## Git
 
