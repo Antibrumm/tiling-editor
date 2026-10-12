@@ -109,4 +109,8 @@ Model tests import the actual TypeScript modules directly through Vitest. UI tes
 
 The ZIP includes a Git repository on branch `main` with one initial commit and no configured remote. `node_modules` and generated `dist` files are ignored. After extracting, run `git status` to inspect the repository and set a remote when you are ready to host it.
 
-Dependencies are pinned in `package.json` and `package-lock.json`. No application license has been selected; dependency licenses remain with their respective packages and bundled notices.
+## License
+
+This project is licensed under the GNU Affero General Public License, version 3 only (`AGPL-3.0-only`). See [LICENSE](LICENSE) for the full terms.
+
+Dependencies are pinned in `package.json` and `package-lock.json`. Third-party dependencies and assets retain their respective licenses and notices.

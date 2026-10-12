@@ -2,6 +2,7 @@
   "name": "tiling-editor",
   "version": "0.1.0",
   "private": true,
+  "license": "AGPL-3.0-only",
   "description": "2D tiling plan editor with a Three.js room preview",
   "type": "module",
   "engines": {
