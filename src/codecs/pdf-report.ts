@@ -3,7 +3,9 @@ import { autoTable } from 'jspdf-autotable';
 import type { Plan } from '../model/types';
 import { TileReportService } from '../model/tile-report-service';
 
-/** Writes selectable report text and tables, with the captured previews on separate A4 pages. */
+type WallReport = ReturnType<TileReportService['analyze']>['walls'][number];
+
+/** Writes selectable report text and tables, with room previews and individual surface pages. */
 export class PdfReport {
   private report = new TileReportService();
   private pdf!: jsPDF;
@@ -11,7 +13,12 @@ export class PdfReport {
   private readonly margin = 12;
   private readonly width = 186;
 
-  public generate(plan: Plan, drawing: string, preview: string | null): ArrayBuffer {
+  public generate(
+    plan: Plan,
+    drawing: string,
+    preview: string | null,
+    surfaceDrawings: string[] = [],
+  ): ArrayBuffer {
     this.pdf = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
     this.pdf.setProperties({
       title: plan.name,
@@ -26,6 +33,10 @@ export class PdfReport {
     this.paragraph(
       `Wall area: ${this.area(report.wallAreaM2)}    Tile region area: ${this.area(report.regionAreaM2)}`,
     );
+    this.previewStack(drawing, preview);
+    this.pdf.addPage();
+    this.y = this.margin;
+    this.paragraph('Tile information', 16, true);
     if (report.tileTypes.size) {
       this.paragraph('Tiles needed for the complete room', 11, true);
       this.table(
@@ -65,8 +76,10 @@ export class PdfReport {
         );
       if (!result) this.paragraph('Region results exceed the calculation limit.', 9);
     }
-    this.imagePage('2D view', drawing);
-    this.imagePage('3D preview', preview);
+    report.walls.forEach((surface, index) => {
+      const image = surfaceDrawings[index];
+      if (image) this.surfacePage(surface, image);
+    });
     const pages = this.pdf.getNumberOfPages();
     for (let page = 1; page <= pages; page++) {
       this.pdf.setPage(page);
@@ -74,6 +87,38 @@ export class PdfReport {
       this.pdf.text(`${page} / ${pages}`, 198, 289, { align: 'right' });
     }
     return this.pdf.output('arraybuffer');
+  }
+
+  private previewStack(drawing: string, preview: string | null) {
+    const gap = 6;
+    const imageY = this.y + 10;
+    const imageHeight = Math.min(100, (280 - imageY - gap) / 2);
+    const panel = (image: string | null, y: number) => {
+      if (!image) {
+        this.pdf.setFont('helvetica', 'normal').setFontSize(9).setTextColor(90);
+        this.pdf.text('Preview unavailable in this browser.', this.margin, y, {
+          maxWidth: this.width,
+        });
+      } else {
+        const properties = this.pdf.getImageProperties(image);
+        const scale = Math.min(this.width / properties.width, imageHeight / properties.height);
+        const width = properties.width * scale;
+        const height = properties.height * scale;
+        this.pdf.addImage(
+          image,
+          'PNG',
+          this.margin + (this.width - width) / 2,
+          y,
+          width,
+          height,
+          undefined,
+          'FAST',
+        );
+      }
+    };
+    panel(preview, imageY);
+    panel(drawing, imageY + imageHeight + gap);
+    this.y = imageY + imageHeight * 2 + gap;
   }
 
   private area(value: number | null): string {
@@ -127,18 +172,15 @@ export class PdfReport {
     });
     this.y = endY + 6;
   }
-  private imagePage(title: string, image: string | null) {
+  private surfacePage(surface: WallReport, image: string) {
     this.pdf.addPage();
     this.y = this.margin;
-    this.paragraph(title, 16, true);
-    if (!image) {
-      this.paragraph('3D preview is unavailable in this browser.');
-      return;
-    }
+    this.paragraph(`Details: ${surface.wall.name}`, 16, true);
     const properties = this.pdf.getImageProperties(image);
-    const scale = Math.min(this.width / properties.width, (280 - this.y) / properties.height);
-    const width = properties.width * scale,
-      height = properties.height * scale;
+    const imageHeight = 90;
+    const scale = Math.min(this.width / properties.width, imageHeight / properties.height);
+    const width = properties.width * scale;
+    const height = properties.height * scale;
     this.pdf.addImage(
       image,
       'PNG',
@@ -149,5 +191,22 @@ export class PdfReport {
       undefined,
       'FAST',
     );
+    this.y += height + 8;
+    this.paragraph(`Wall area: ${this.area(surface.areaM2)}`);
+    if (!surface.wall.patternRegions.length) this.paragraph('No tile regions.', 9);
+    else
+      this.table(
+        ['Tile region', 'Area', 'Selected tile', 'Tiles needed'],
+        surface.wall.patternRegions.map((region, index) => {
+          const detail = surface.result?.regions[index];
+          return [
+            `Tile region ${index + 1}${region.fullWall ? ' · Full wall' : ''}`,
+            this.area(detail?.areaM2 ?? null),
+            region.pattern || 'No tile selected',
+            detail ? detail.count.toLocaleString() : 'Unavailable',
+          ];
+        }),
+      );
+    if (!surface.result) this.paragraph('Region results exceed the calculation limit.', 9);
   }
 }

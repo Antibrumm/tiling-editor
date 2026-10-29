@@ -90,9 +90,9 @@ export class PrintController {
   }
 
   private async preparePdf(): Promise<Blob> {
-    const { plan, drawing, preview } = await this.prepare();
+    const { plan, drawing, surfaceDrawings, preview } = await this.prepare();
     const { PdfReport } = await import('../codecs/pdf-report');
-    const buffer = new PdfReport().generate(plan, drawing, preview);
+    const buffer = new PdfReport().generate(plan, drawing, preview, surfaceDrawings);
     return new Blob([buffer], { type: 'application/pdf' });
   }
 
@@ -104,16 +104,20 @@ export class PrintController {
     const plan = structuredClone(this.dependencies.plan());
     await this.dependencies.painter.prepare(plan.patterns);
     const drawing = this.captureDrawing(plan);
+    const surfaceDrawings = plan.walls.map((wall) => this.captureDrawing(plan, wall));
     let preview: string | null = null;
     try {
       preview = await this.dependencies.threePreview.capture(plan);
     } catch {
       /* Export the report even if WebGL is unavailable. */
     }
-    return { plan, drawing, preview };
+    return { plan, drawing, surfaceDrawings, preview };
   }
 
-  private captureDrawing(plan: Plan): string {
+  private captureDrawing(plan: Plan, surface?: Plan['walls'][number]): string {
+    const drawingPlan = surface
+      ? { ...plan, walls: [{ ...surface, rotation: 0 }] }
+      : plan;
     const stage = document.createElement('div');
     stage.style.cssText = 'position:fixed;left:-10000px;top:0;width:1600px;height:1000px;';
     const canvas = document.createElement('canvas');
@@ -121,7 +125,7 @@ export class PrintController {
     stage.append(canvas);
     document.body.append(stage);
     try {
-      const bounds = this.geometry.planBounds(plan);
+      const bounds = this.geometry.planBounds(drawingPlan);
       const pad = bounds
         ? Math.max(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY) * 0.05
         : 0;
@@ -146,7 +150,7 @@ export class PrintController {
         editorState: new EditorState(),
         paintSurfacePattern: this.dependencies.painter,
       });
-      renderer.paint(plan);
+      renderer.paint(drawingPlan);
       return canvas.toDataURL('image/png');
     } finally {
       stage.remove();

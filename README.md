@@ -2,7 +2,6 @@
 
 A Preact and Signals application for editing tiling plans in 2D and previewing them as a room in Three.js. This project contains the latest version from our work, including pattern rotation, the T-unwrapped room, layered elements, multiple configurable lights, white exterior faces, and camera-preserving room fitting.
 
-
 ## Pages
 
 A Demo application is accessible here: [Tiling Editor](https://antibrumm.github.io/tiling-editor/)
