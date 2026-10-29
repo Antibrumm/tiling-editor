@@ -115,9 +115,7 @@ export class PrintController {
   }
 
   private captureDrawing(plan: Plan, surface?: Plan['walls'][number]): string {
-    const drawingPlan = surface
-      ? { ...plan, walls: [{ ...surface, rotation: 0 }] }
-      : plan;
+    const drawingPlan = surface ? { ...plan, walls: [{ ...surface, rotation: 0 }] } : plan;
     const stage = document.createElement('div');
     stage.style.cssText = 'position:fixed;left:-10000px;top:0;width:1600px;height:1000px;';
     const canvas = document.createElement('canvas');
